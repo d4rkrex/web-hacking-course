@@ -39,7 +39,7 @@ Listado de plataformas y aplicaciones vulnerables para práctica legal. Todos ve
 | **DVNA** | https://github.com/appsecco/dvna | Node.js | Intermedio |
 | **Mutillidae** | https://sourceforge.net/projects/mutillidae/ | PHP | Principiante |
 | **WackoPicko** | https://github.com/adamdoupe/WackoPicko | PHP | Intermedio |
-| **bWAPP** | http://www. yourownurl.com/bWAPP (instalar) | PHP | Principiante |
+| **bWAPP** | http://www.itsecgames.com/ (descargar e instalar local) | PHP | Principiante |
 
 ### Instalación rápida con Docker:
 
