@@ -14,6 +14,11 @@ infra/
 SETUP_COMPLETO.md
 Modulo-1/lab_setup.md
 
+# Archivos internos del agente/profesor
+.copilot/
+AGENTS.md
+templates/
+
 # IDE / Editor
 .vscode/
 

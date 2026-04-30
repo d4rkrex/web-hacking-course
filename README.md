@@ -1,46 +1,41 @@
-# Curso de Web Hacking
+# 🕸️ Curso de Web Hacking
 
-Material de un curso de Web Hacking de **5 módulos**, cada uno dictado como una clase de **3 horas con receso de 20 minutos**.
+Repositorio con el material de apoyo del curso. Acá vas a encontrar las presentaciones, comandos usados en clase, y recursos para practicar.
 
-## Estructura
-
-```
-Curso_web_hacking/
-├── AGENTS.md                  # convenciones del repo (auto-cargado por Copilot CLI)
-├── .copilot/skills/           # skills reusables para preparar módulos
-├── templates/                 # esqueletos del deck, herramientas y notas
-└── Modulo-N/
-    ├── mds/                   # material crudo
-    ├── pdfs/                  # PDFs originales
-    ├── deck_N.md              # presentación lista para convertir a HTML
-    ├── herramientas_modulo_N.md
-    └── notas_para_el_profe.md
-```
-
-## Cómo preparar un módulo
-
-Desde la raíz del repo, dentro de Copilot CLI:
+## 📂 Estructura
 
 ```
-preparar el módulo N
+Modulo-N/
+├── deck_N.md              ← Presentación de la clase (markdown)
+├── deck_N.html            ← Presentación interactiva (abrir en browser)
+├── comandos_clase_N.md    ← Todos los comandos usados en la demo
+├── sitios_para_practicar.md  ← Labs online para seguir practicando
+└── assets/                ← Imágenes y diagramas
 ```
 
-Esto invoca el skill `prep-module` que:
-1. Lee todos los `.md` dentro de `Modulo-N/mds/`
-2. Genera `deck_N.md` (presentación slide-por-slide)
-3. Genera `herramientas_modulo_N.md` (inventario de herramientas)
-4. Genera `notas_para_el_profe.md` (guía interna)
+## 🚀 Módulos
 
-Skills individuales también disponibles:
-- `build-deck` — solo el deck
-- `build-tools-list` — solo herramientas
-- `build-instructor-notes` — solo las notas
+| # | Tema | Estado |
+|---|------|--------|
+| 1 | Fundamentos Web, HTTP/HTTPS y Reconocimiento | ✅ Dictado |
+| 2 | Inyecciones (SQLi, XSS, Command Injection) | 🔜 Próximo |
+| 3 | Autenticación, Sesiones y Control de Acceso | 📅 |
+| 4 | Vulnerabilidades de Lógica y APIs | 📅 |
+| 5 | Explotación Avanzada y Proyecto Final | 📅 |
 
-## Filosofía del curso
+## 🛠️ Requisitos
 
-- **Teoría enseñada a través de demos guiadas en vivo**, no labs silenciosos.
-- El profesor ejecuta, los alumnos razonan y proponen mientras la herramienta corre.
-- **Labs y desafíos** del material → se convierten en **demos guiadas** en clase.
-- **Proyecto integrador** → queda como **tarea para casa**.
+- **Navegador** con DevTools (Firefox/Chrome)
+- **Burp Suite Community** (proxy HTTP)
+- **Terminal** con `curl`, `nmap`, `whatweb`
+- Acceso a los labs (URLs compartidas en clase)
 
-Reglas detalladas en [`AGENTS.md`](./AGENTS.md).
+## 📖 Cómo usar las presentaciones
+
+El archivo `deck_N.html` se abre directamente en el browser. Navegá con las flechas ← →.
+
+El archivo `deck_N.md` es la versión markdown por si preferís leerlo como texto o importarlo en otra herramienta.
+
+## ⚠️ Disclaimer
+
+Este material es exclusivamente para fines educativos. Las técnicas enseñadas deben usarse **solo en entornos autorizados** (labs propios, plataformas de práctica, o con autorización escrita del dueño del sistema).
