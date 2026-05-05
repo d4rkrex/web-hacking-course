@@ -19,9 +19,6 @@ nmap -sV --script=http-enum,http-headers,http-methods -p 443 juice.labs.manuel-r
 # Scripts por categoría (discovery, vuln, safe)
 nmap --script="discovery and safe" -p 443 juice.labs.manuel-roldan.cloud
 
-# Escaneo de todos los puertos
-nmap -sV -sC -p- 92.113.34.149
-
 # Script personalizado (NSE local)
 nmap -Pn -p 443 --script Modulo-1/lab/nmap/scripts/http-security-headers-simple.nse juice.labs.manuel-roldan.cloud
 ```
@@ -189,23 +186,6 @@ Ubicación: `/usr/share/seclists/`
 | `Fuzzing/SQLi/Generic-SQLi.txt` | Payloads de SQL Injection |
 | `Fuzzing/XSS/XSS-Jhaddix.txt` | Payloads de XSS |
 | `Discovery/DNS/subdomains-top1million-5000.txt` | Enumeración de subdominios |
-
----
-
-## Monitoreo de logs en tiempo real
-
-```bash
-# Ver logs de Traefik (reverse proxy) mientras se ejecuta gobuster
-ssh root@92.113.34.149 "docker logs -f traefik 2>&1 | grep juice"
-
-# Ver logs del backend de Juice Shop
-ssh root@92.113.34.149 "docker logs -f juice-shop"
-```
-
-| Concepto | Explicación |
-|----------|-------------|
-| `docker logs -f` | Equivalente a `tail -f`, muestra logs en tiempo real |
-| `2>&1` | Redirige stderr a stdout (docker logs escribe por stderr) |
 
 ---
 
