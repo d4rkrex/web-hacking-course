@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deck 1_2 · Módulo 1 · Clase 2 · Curso de Web Hacking</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #161b28;
+            --border: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #475569;
+            --accent-cyan: #06b6d4;
+            --accent-fuchsia: #d946ef;
+            --accent-lime: #84cc16;
+            --accent-yellow: #eab308;
+            --accent-rose: #f43f5e;
+            --accent-emerald: #10b981;
+        }
+
+        body.light-mode {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+        }
+
+        body.light-mode .bg-grid path { stroke: #cbd5e1; }
+
+        body {
+            background: var(--bg-primary);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text-primary);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            user-select: none;
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 80px 100px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(80px);
+            transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s 0.5s;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+            pointer-events: auto;
+            z-index: 2;
+            transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s 0s;
+        }
+
+        .slide.to-left {
+            opacity: 0;
+            transform: translateX(-80px);
+            visibility: hidden;
+            z-index: 0;
+        }
+
+        .slide.spotlight-slide {
+            overflow: hidden;
+            isolation: isolate;
+        }
+
+        .slide.spotlight-slide::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(circle at 84% 14%, rgba(132, 204, 22, 0.12), transparent 32%),
+                radial-gradient(circle at 16% 82%, rgba(6, 182, 212, 0.1), transparent 36%);
+        }
+
+        .slide.spotlight-slide::after {
+            content: '';
+            position: absolute;
+            inset: -10% -6%;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(circle at 72% 22%, rgba(217, 70, 239, 0.08), transparent 22%),
+                radial-gradient(circle at 28% 76%, rgba(6, 182, 212, 0.06), transparent 26%);
+            filter: blur(26px);
+            opacity: 0.9;
+        }
+
+        .slide.spotlight-slide > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide-title,
+        .slide-content {
+            max-width: 1240px;
+            width: 100%;
+            max-height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .slide-content::-webkit-scrollbar,
+        .slide-title::-webkit-scrollbar {
+            width: 8px;
+        }
+        .slide-content::-webkit-scrollbar-thumb,
+        .slide-title::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /* Prevenir overflow horizontal en elementos internos */
+        .slide-content > *,
+        .slide-title > * {
+            max-width: 100%;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+        }
+
+        .slide-content pre,
+        .slide-content .code-shell,
+        .slide-content .table-shell {
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
+        .slide-content .slide-image {
+            margin: 1.5rem 0;
+        }
+
+        .slide-title { text-align: center; }
+
+        .slide-title h1,
+        .slide-content h1 {
+            font-size: clamp(42px, 5vw, 72px);
+            font-weight: 800;
+            line-height: 1.08;
+            letter-spacing: -1px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-fuchsia));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .slide-title h2,
+        .slide-content h2 {
+            font-size: clamp(30px, 4vw, 52px);
+            font-weight: 700;
+            margin-bottom: 36px;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+        }
+
+        .slide-title h3,
+        .slide-content h3 {
+            font-size: clamp(20px, 2.2vw, 28px);
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: var(--text-secondary);
+        }
+
+        .slide-content h4 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 24px 0 12px;
+            color: var(--accent-cyan);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 999px;
+            margin-bottom: 24px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.08);
+            border: 1px solid rgba(6, 182, 212, 0.24);
+        }
+
+        .lead,
+        .slide-content p,
+        .slide-title p,
+        .blockquote {
+            font-size: clamp(18px, 1.8vw, 24px);
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 18px;
+        }
+
+        .slide-content p strong,
+        .slide-title p strong,
+        .blockquote strong,
+        li strong,
+        td strong {
+            color: var(--text-primary);
+            transition: all 0.1s ease-out;
+            cursor: default;
+            position: relative;
+            padding: 2px 6px;
+            margin: 0 -6px;
+            border-radius: 6px;
+        }
+
+        /* Hover effect en negritas */
+        .slide-content strong:hover,
+        .slide-title strong:hover,
+        li strong:hover,
+        td strong:hover {
+            color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.15);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12);
+            transform: scale(1.05);
+        }
+
+        body.light-mode .slide-content strong:hover,
+        body.light-mode .slide-title strong:hover,
+        body.light-mode li strong:hover {
+            background: rgba(6, 182, 212, 0.12);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.08);
+        }
+
+        .blockquote {
+            margin-top: 18px;
+            padding: 22px 24px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.54), rgba(15, 23, 42, 0.72));
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 18px 40px rgba(0, 0, 0, 0.18);
+        }
+
+        body.light-mode .blockquote {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.74));
+            border: 1px solid rgba(148, 163, 184, 0.26);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 16px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .slide-content ul,
+        .slide-content ol,
+        .slide-title ul,
+        .slide-title ol {
+            padding: 0;
+            margin: 10px 0 20px;
+            list-style: none;
+        }
+
+        .slide-content li,
+        .slide-title li {
+            font-size: clamp(16px, 1.6vw, 22px);
+            line-height: 1.65;
+            color: var(--text-secondary);
+            padding: 10px 16px 10px 40px;
+            margin: 4px 0;
+            position: relative;
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 10px;
+            cursor: default;
+        }
+
+        /* Hover effect en items de lista */
+        .slide.active li:hover {
+            background: rgba(6, 182, 212, 0.08);
+            color: var(--text-primary);
+            transform: translateX(0) scale(1.01);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+            padding-left: 46px;
+            transition: all 0.15s ease-out;
+        }
+
+        .slide.active li:hover::before {
+            color: var(--accent-fuchsia);
+            transform: scale(1.3);
+            transition: all 0.1s ease-out;
+        }
+
+        body.light-mode .slide.active li:hover {
+            background: rgba(6, 182, 212, 0.06);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.08);
+        }
+
+        .slide-content li::before,
+        .slide-title li::before {
+            content: '▹';
+            position: absolute;
+            left: 12px;
+            color: var(--accent-cyan);
+            font-size: 24px;
+            top: 8px;
+        }
+
+        .slide-content ol { counter-reset: item; }
+        .slide-content ol li::before,
+        .slide-title ol li::before {
+            counter-increment: item;
+            content: counter(item);
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 800;
+            background: rgba(6, 182, 212, 0.18);
+            left: 8px;
+            top: 12px;
+        }
+
+        .slide.active li,
+        .slide.active .table-shell,
+        .slide.active .code-shell,
+        .slide.active .qa-accordion,
+        .slide.active .callout-card,
+        .slide.active .meta-chip,
+        .slide.active .divider-banner {
+            opacity: 1;
+            transform: translateX(0) translateY(0) scale(1);
+        }
+
+        .slide.active li:nth-child(1),
+        .slide.active .callout-card:nth-child(1),
+        .slide.active .meta-chip:nth-child(1) { transition-delay: 0.08s; }
+        .slide.active li:nth-child(2),
+        .slide.active .callout-card:nth-child(2),
+        .slide.active .meta-chip:nth-child(2) { transition-delay: 0.16s; }
+        .slide.active li:nth-child(3),
+        .slide.active .callout-card:nth-child(3),
+        .slide.active .meta-chip:nth-child(3) { transition-delay: 0.24s; }
+        .slide.active li:nth-child(4),
+        .slide.active .callout-card:nth-child(4),
+        .slide.active .meta-chip:nth-child(4) { transition-delay: 0.32s; }
+        .slide.active li:nth-child(5) { transition-delay: 0.4s; }
+
+        .table-shell,
+        .code-shell,
+        .qa-accordion,
+        .callout-card,
+        .divider-banner,
+        .meta-chip {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: all 0.45s ease;
+        }
+
+        .table-shell,
+        .code-shell,
+        .qa-accordion,
+        .callout-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 24px 0;
+            box-shadow: 0 16px 34px rgba(2, 6, 23, 0.18);
+        }
+
+        .table-shell::before,
+        .code-shell::before,
+        .qa-accordion::before,
+        .callout-card::before {
+            content: '';
+            display: block;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-fuchsia));
+        }
+
+        .qa-accordion {
+            margin: 24px 0;
+            padding: 8px 14px 14px;
+        }
+
+        .qa-item {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        }
+
+        .qa-item:last-child {
+            border-bottom: 0;
+        }
+
+        .qa-item summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 18px 42px 18px 10px;
+            position: relative;
+            color: var(--text-primary);
+            font-size: clamp(18px, 1.6vw, 23px);
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .qa-item summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .qa-item summary::after {
+            content: '+';
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent-cyan);
+            font-size: 28px;
+            font-weight: 500;
+        }
+
+        .qa-item[open] summary::after {
+            content: '−';
+        }
+
+        .qa-item summary:hover {
+            color: var(--accent-cyan);
+        }
+
+        .qa-answer {
+            padding: 0 10px 18px 10px;
+        }
+
+        .qa-answer p {
+            margin: 0 0 10px;
+            font-size: clamp(16px, 1.45vw, 21px);
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .qa-answer p:last-child {
+            margin-bottom: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 16px 18px;
+            text-align: left;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+            vertical-align: top;
+            transition: all 0.12s ease-out;
+        }
+
+        /* Hover effect en filas de tabla */
+        tbody tr:hover td {
+            background: rgba(6, 182, 212, 0.05);
+            color: var(--text-primary);
+        }
+
+        tbody tr:hover td:first-child {
+            color: var(--accent-cyan);
+            transform: translateX(4px);
+        }
+
+        body.light-mode tbody tr:hover td {
+            background: rgba(6, 182, 212, 0.04);
+        }
+
+        th {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--text-muted);
+            background: rgba(15, 23, 42, 0.42);
+        }
+
+        td {
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        td:first-child { color: var(--text-primary); font-weight: 700; }
+
+        .ssdlc-shell {
+            position: relative;
+            margin: 24px 0 18px;
+            padding: 22px 20px 10px;
+            border-radius: 24px;
+            background:
+                radial-gradient(circle at 12% 18%, rgba(6, 182, 212, 0.12), transparent 26%),
+                radial-gradient(circle at 88% 16%, rgba(217, 70, 239, 0.12), transparent 24%),
+                linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.74));
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 18px 42px rgba(2, 6, 23, 0.24);
+            opacity: 0;
+            transform: translateY(18px);
+            transition: all 0.45s ease;
+            overflow: hidden;
+        }
+
+        .slide.active .ssdlc-shell {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.22s;
+        }
+
+        .ssdlc-shell::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto;
+            height: 4px;
+            background: linear-gradient(90deg, #f97316, #facc15, #06b6d4);
+        }
+
+        .ssdlc-top-grid,
+        .ssdlc-activity-grid,
+        .ssdlc-lifecycle-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 14px;
+            align-items: start;
+        }
+
+        .ssdlc-top-grid {
+            margin-bottom: 18px;
+        }
+
+        .ssdlc-top-card {
+            position: relative;
+            min-height: 96px;
+            padding: 18px 20px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.94), rgba(226, 232, 240, 0.88));
+            color: #111827;
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1.15;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 14px 26px rgba(15, 23, 42, 0.18);
+        }
+
+        .ssdlc-top-card.risk {
+            grid-column: 1 / span 2;
+        }
+
+        .ssdlc-top-card.vuln {
+            grid-column: 4 / span 2;
+        }
+
+        .ssdlc-drop {
+            position: absolute;
+            bottom: -56px;
+            width: 2px;
+            height: 42px;
+            background: rgba(226, 232, 240, 0.92);
+        }
+
+        .ssdlc-drop::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            transform: translateX(-50%);
+            border-radius: 999px;
+            background: #111827;
+            box-shadow: 0 0 0 2px rgba(248, 250, 252, 0.72);
+        }
+
+        .ssdlc-top-card.risk .ssdlc-drop.left { left: 28%; }
+        .ssdlc-top-card.risk .ssdlc-drop.right { right: 24%; }
+        .ssdlc-top-card.vuln .ssdlc-drop.center { left: 50%; transform: translateX(-50%); }
+
+        .ssdlc-activity-grid {
+            margin-bottom: 8px;
+        }
+
+        .ssdlc-activity,
+        .ssdlc-lifecycle-stage {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .ssdlc-pillar {
+            width: 2px;
+            height: 42px;
+            background: rgba(226, 232, 240, 0.85);
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .ssdlc-pillar::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            width: 9px;
+            height: 9px;
+            transform: translateX(-50%);
+            border-radius: 999px;
+            background: #111827;
+            box-shadow: 0 0 0 2px rgba(248, 250, 252, 0.72);
+        }
+
+        .ssdlc-badge {
+            width: 100%;
+            min-height: 92px;
+            padding: 16px 14px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #facc15, #fbbf24);
+            color: #111827;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.18;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 12px 24px rgba(251, 191, 36, 0.28);
+        }
+
+        .ssdlc-activity.span-2 {
+            grid-column: span 2;
+        }
+
+        .ssdlc-activity.span-2 .ssdlc-badge {
+            min-height: 84px;
+            font-size: 17px;
+        }
+
+        .ssdlc-activity-connector {
+            width: 2px;
+            height: 36px;
+            background: rgba(226, 232, 240, 0.82);
+            margin: 10px 0 4px;
+            position: relative;
+        }
+
+        .ssdlc-activity-connector::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            width: 9px;
+            height: 9px;
+            transform: translateX(-50%);
+            border-radius: 999px;
+            background: #111827;
+            box-shadow: 0 0 0 2px rgba(248, 250, 252, 0.72);
+        }
+
+        .ssdlc-lifecycle-grid {
+            align-items: center;
+        }
+
+        .ssdlc-lifecycle {
+            position: relative;
+            width: 148px;
+            height: 148px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle at center, #fde7c7 0 55%, transparent 56%),
+                conic-gradient(from 270deg, #ff7a00 0 300deg, rgba(255, 122, 0, 0.18) 300deg 360deg);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+        }
+
+        .ssdlc-lifecycle::before {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border-radius: 999px;
+            background: #fde7c7;
+            box-shadow: inset 0 0 0 1px rgba(255, 122, 0, 0.16);
+        }
+
+        .ssdlc-lifecycle span {
+            position: relative;
+            z-index: 1;
+            max-width: 108px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 0.02em;
+            line-height: 1.05;
+            color: #111827;
+        }
+
+        .ssdlc-lifecycle-stage[data-arrow='true'] .ssdlc-lifecycle::after {
+            content: '➜';
+            position: absolute;
+            right: -22px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 42px;
+            line-height: 1;
+            color: #ff7a00;
+            font-weight: 900;
+            text-shadow: 0 6px 12px rgba(255, 122, 0, 0.28);
+        }
+
+        body.light-mode .ssdlc-shell {
+            background:
+                radial-gradient(circle at 12% 18%, rgba(6, 182, 212, 0.08), transparent 28%),
+                radial-gradient(circle at 88% 16%, rgba(217, 70, 239, 0.08), transparent 24%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+            border-color: rgba(148, 163, 184, 0.22);
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.08);
+        }
+
+        @media (max-width: 1100px) {
+            .ssdlc-shell {
+                transform-origin: top center;
+                scale: 0.92;
+                margin: 10px -16px 0;
+            }
+
+            .slide.active .ssdlc-shell {
+                transform: translateY(0) scale(0.92);
+            }
+
+            .ssdlc-top-card {
+                font-size: 18px;
+            }
+
+            .ssdlc-badge {
+                font-size: 14px;
+                min-height: 84px;
+            }
+
+            .ssdlc-lifecycle {
+                width: 128px;
+                height: 128px;
+            }
+        }
+
+        pre {
+            padding: 20px 22px;
+            overflow-x: auto;
+            background: #0d1117;
+            color: #9ae6b4;
+            font-size: 16px;
+            line-height: 1.65;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+
+        code.inline-code {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(6, 182, 212, 0.12);
+            color: var(--accent-cyan);
+            font-size: 0.9em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 22px 0 10px;
+        }
+
+        .meta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(6, 182, 212, 0.08);
+            border: 1px solid rgba(6, 182, 212, 0.24);
+            color: var(--accent-cyan);
+            font-size: 14px;
+            line-height: 1.3;
+        }
+
+        .divider-banner {
+            width: 100%;
+            padding: 28px 32px;
+            border-radius: 24px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.16), rgba(217, 70, 239, 0.16));
+            border: 1px solid rgba(6, 182, 212, 0.18);
+            box-shadow: 0 22px 40px rgba(2, 6, 23, 0.16);
+        }
+
+        .divider-banner h1,
+        .divider-banner h2,
+        .divider-banner h3,
+        .divider-banner p {
+            margin-bottom: 0;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(6, 182, 212, 0.2);
+            z-index: 1000;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-fuchsia));
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
+
+        .menu-btn {
+            position: fixed;
+            top: 18px;
+            left: 18px;
+            width: 42px;
+            height: 42px;
+            background: rgba(15, 23, 42, 0.58);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 999px;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 28px rgba(0, 0, 0, 0.18);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), border-color 0.35s ease, background 0.35s ease;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(6, 182, 212, 0.28);
+            background: rgba(15, 23, 42, 0.72);
+        }
+
+        body.light-mode .menu-btn {
+            background: rgba(255, 255, 255, 0.82);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 12px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .menu-btn span {
+            width: 15px;
+            height: 1.5px;
+            background: rgba(241, 245, 249, 0.88);
+            border-radius: 999px;
+        }
+
+        body.light-mode .menu-btn span { background: rgba(15, 23, 42, 0.78); }
+
+        .slide-menu {
+            position: fixed;
+            top: 0;
+            left: -360px;
+            width: 360px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 2px solid var(--accent-cyan);
+            z-index: 1000;
+            overflow-y: auto;
+            transition: left 0.3s ease;
+            padding: 90px 20px 20px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide-menu.active { left: 0; }
+
+        .slide-menu h3 {
+            color: var(--accent-cyan);
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-left: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .slide-menu-item {
+            padding: 14px 10px;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            font-size: 14px;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+
+        .slide-menu-item:hover,
+        .slide-menu-item.current {
+            background: rgba(6, 182, 212, 0.1);
+            border-left-color: var(--accent-cyan);
+            color: var(--text-primary);
+        }
+
+        .slide-menu-item .slide-number {
+            display: inline-block;
+            min-width: 32px;
+            color: var(--accent-cyan);
+            font-weight: 700;
+            margin-right: 10px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            width: 42px;
+            height: 42px;
+            background: rgba(15, 23, 42, 0.58);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 999px;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: rgba(241, 245, 249, 0.82);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 28px rgba(0, 0, 0, 0.18);
+        }
+
+        .theme-toggle:hover {
+            border-color: rgba(217, 70, 239, 0.24);
+            color: rgba(248, 250, 252, 0.96);
+            background: rgba(15, 23, 42, 0.72);
+        }
+
+        body.light-mode .theme-toggle {
+            background: rgba(255, 255, 255, 0.82);
+            color: rgba(15, 23, 42, 0.76);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 12px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        #theme-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #theme-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.65;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 34px;
+            left: 34px;
+            color: var(--text-muted);
+            z-index: 100;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .slide-counter .current { font-size: 28px; color: var(--accent-cyan); font-weight: 800; }
+
+        .nav-controls {
+            position: fixed;
+            bottom: 34px;
+            right: 34px;
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            padding: 12px 30px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid rgba(6, 182, 212, .28);
+            color: var(--accent-cyan);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+        .placeholder-link {
+            color: var(--accent-fuchsia);
+            font-weight: 600;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @media (max-width: 1200px) {
+            .slide { padding: 82px 28px 138px; }
+            .slide-content,
+            .slide-title { max-width: 100%; }
+            .slide-menu {
+                width: min(88vw, 360px);
+                left: calc(-1 * min(88vw, 360px));
+            }
+        }
+    </style>
+</head>
+<body>
+    <svg class="bg-grid" aria-hidden="true"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"></path></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"></rect></svg>
+    <button class="menu-btn" type="button" onclick="toggleMenu()" aria-label="Abrir navegación"><span></span><span></span><span></span></button>
+    <aside class="slide-menu" id="slide-menu"><h3>Navegacion</h3><div id="menu-items"></div></aside>
+    <button class="theme-toggle" type="button" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar tema"><span id="theme-icon" aria-hidden="true"></span></button>
+
+    <main class="presentation" id="presentation"></main>
+
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="slide-counter"><span class="current" id="current-slide">1</span> / <span id="total-slides">1</span></div>
+    <div class="nav-controls"><button class="nav-btn" id="prev-btn" type="button" onclick="prevSlide()">◄ Anterior</button><button class="nav-btn" id="next-btn" type="button" onclick="nextSlide()">Siguiente ►</button></div>
+
+    <script id="deck-source" type="text/plain"># Deck — Clase 2 · Módulo 1
+
+> Curso de Web Hacking
+> Duración: 2 horas (sin receso obligatorio)
+> Formato: teoría + práctica intercaladas (demos guiadas)
+
+---
+
+
+# Web Hacking
+## Módulo 1 — Clase 2
+### Enumeración avanzada y descubrimiento de vulnerabilidades
+
+---
+
+## Recap: Clase 1
+
+- Arquitectura web: cliente-servidor, proxies, CDN
+- Triada CIA, autenticación vs autorización
+- HTTP: request/response, métodos, códigos, headers de seguridad
+- HTTPS y TLS handshake
+- Fingerprinting con WhatWeb y Wappalyzer
+- Reconocimiento pasivo: Google Dorks, dig, whois, theHarvester
+- Pasivo vs Activo: cuándo necesitás autorización
+
+---
+
+## Agenda de hoy
+
+1. Enumeración de directorios con Gobuster
+2. Correlación de fuentes y enumeración avanzada
+3. Nmap en profundidad + scripts NSE
+4. Descubrimiento de rutas ocultas y sensibles
+5. Nikto: escaneo automatizado de vulnerabilidades
+
+---
+
+## Enumeración: el concepto
+
+**Enumeración** = descubrir recursos no listados mediante fuerza bruta controlada.
+
+Ingredientes:
+1. **Wordlist**: diccionario de paths/archivos posibles
+2. **Herramienta**: que pruebe cada palabra contra el servidor
+3. **Interpretación**: filtrar falsos positivos, analizar códigos de respuesta
+
+---
+
+## ¿Qué buscamos con enumeración?
+
+- `/admin`, `/panel`, `/dashboard` → paneles de administración
+- `/api/internal/`, `/api/debug/` → endpoints internos expuestos
+- `/backup.zip`, `/db.sql`, `.env` → backups y configs
+- `/server-status`, `/phpinfo.php` → info del servidor
+- `/logs/`, `/debug/` → archivos de log expuestos
+- `.git/`, `.svn/` → repositorios de código fuente
+
+---
+
+## Gobuster
+
+Herramienta escrita en Go. Rápida, multithreaded, simple.
+
+**Modos principales:**
+
+| Modo | Uso |
+|---|---|
+| `dir` | Enumerar directorios y archivos |
+| `dns` | Enumerar subdominios |
+| `vhost` | Enumerar virtual hosts |
+
+---
+
+## Gobuster — Comando típico
+
+```bash
+gobuster dir \
+  -u https://target.com \
+  -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt \
+  -t 50 \
+  -x php,txt,bak
+```
+
+| Flag | Significado |
+|---|---|
+| `-u` | URL target |
+| `-w` | Wordlist |
+| `-t` | Threads (concurrencia) |
+| `-x` | Extensiones a probar |
+
+---
+
+## Gobuster — Filtrado de resultados
+
+```bash
+gobuster dir -u https://target.com \
+  -w wordlist.txt \
+  --exclude-length 1234 \
+  -b 404,403
+```
+
+| Flag | Significado |
+|---|---|
+| `--exclude-length` | Ignora respuestas con ese tamaño (falsos positivos) |
+| `-b` | Excluir estos status codes |
+| `-s` | Solo mostrar estos status codes |
+
+Clave: si la app devuelve siempre 200 con un body genérico, filtrar por tamaño.
+
+---
+
+## Otras herramientas de enumeración
+
+**Wfuzz** — Más flexible, permite fuzzear cualquier parte del request:
+
+```bash
+wfuzz -c -w wordlist.txt --hc 404 https://target.com/FUZZ
+```
+
+Puede fuzzear headers, parámetros, cookies, no solo paths.
+
+**Dirsearch** — Alternativa en Python, amigable:
+
+```bash
+dirsearch -u https://target.com -e php,html,js
+```
+
+Hoy nos enfocamos en Gobuster. Las otras las van a encontrar en el campo.
+
+---
+
+## 🧪 Demo 2: Gobuster contra Juice Shop
+
+**Target:** `https://juice.labs.manuel-roldan.cloud`
+
+**Objetivo:** Descubrir rutas ocultas que no aparecen en la navegación normal.
+
+---
+
+## 🧪 Primer intento
+
+```bash
+gobuster dir \
+  -u https://juice.labs.manuel-roldan.cloud \
+  -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+```
+
+**Problema:** Juice Shop es una SPA (Single Page Application).
+Todas las rutas devuelven **200 OK** con el mismo HTML del frontend.
+
+¿Cómo distinguimos paths reales de falsos positivos?
+
+---
+
+## 💡 El truco: --exclude-length
+
+```bash
+gobuster dir \
+  -u https://juice.labs.manuel-roldan.cloud \
+  -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt \
+  --exclude-length 75055
+```
+
+El body genérico de la SPA tiene siempre **75055 bytes**.
+Excluimos ese tamaño → solo vemos respuestas reales del backend.
+
+---
+
+## 🧪 Hallazgos
+
+| Path | Status | Análisis |
+|---|---|---|
+| `/ftp` | 200 OK | Directorio público con archivos de configuración |
+| `/api` | 500 | El backend existe y responde distinto |
+| `/profile` | 500 | Endpoint que espera autenticación |
+| `/redirect` | 500 | Excepción no manejada → posible open redirect |
+
+---
+
+## 🧪 Discusión con la clase
+
+```qa-accordion
+Q: ¿Qué significa un 500 vs un 404?
+A: 404 = no existe. 500 = existe pero crasheó → input no esperado.
+A: Un 500 es más interesante que un 404.
+
+Q: ¿Por qué `/ftp` es crítico?
+A: Es un directorio accesible sin auth con archivos sensibles.
+A: Posible fuga de credenciales, configs, backups.
+
+Q: ¿Qué investigamos después?
+A: Navegar `/ftp` manualmente.
+A: Probar `/api` con diferentes métodos.
+A: Buscar documentación de la API.
+```
+
+---
+
+## Nmap: detección de servicios
+
+```bash
+nmap -sV <target>
+```
+
+El flag `-sV` envía probes específicos para identificar el **servicio y versión** detrás de cada puerto abierto.
+
+No es un simple port scan: interroga activamente al servicio.
+
+---
+
+## Nmap: un comando más útil en la práctica
+
+```bash
+nmap -Pn -sV -sC -p 80,443,8080 --open <target>
+```
+
+| Flag | Qué hace |
+|---|---|
+| `-Pn` | Asume que el host está activo aunque no responda a ping |
+| `-sV` | Detecta servicio y versión |
+| `-sC` | Ejecuta scripts NSE por defecto |
+| `-p` | Limita el scan a los puertos que te interesan |
+| `--open` | Muestra solo puertos abiertos |
+
+Para una **primera pasada web**, este comando ya te da puertos abiertos, versiones y chequeos básicos.
+
+---
+
+## NSE: qué es y dónde está
+
+**NSE** = **Nmap Scripting Engine**.
+
+Son scripts en **Lua** que extienden Nmap para hacer enumeración, validaciones y detecciones más específicas.
+
+- Ubicación típica de los scripts: `/usr/share/nmap/scripts/`
+- Índice de scripts: `/usr/share/nmap/scripts/script.db`
+- Si agregás scripts nuevos: `nmap --script-updatedb`
+
+---
+
+## NSE: ejemplo práctico
+
+```bash
+nmap -Pn -sV -p 443 \
+    --script=http-headers,http-methods,ssl-cert,ssl-enum-ciphers \
+    <target>
+```
+
+Con este comando le pedís a Nmap que, además de detectar el servicio, use NSE para revisar:
+
+- Headers HTTP
+- Métodos HTTP permitidos
+- Certificado TLS
+- Cifrados soportados
+
+---
+
+## NSE: ejemplo propio para la clase
+
+Creamos un script local en Lua para revisar en una sola pasada:
+
+- Cabeceras de seguridad
+- `Server`
+- `X-Powered-By`
+
+Ruta en este repo:
+
+`Modulo-1/lab/nmap/scripts/http-security-headers-simple.nse`
+
+```bash
+nmap -Pn -p 80,443 \
+    --script ./Modulo-1/lab/nmap/scripts/http-security-headers-simple.nse \
+    <target>
+```
+
+La idea didáctica es simple: **mostrar cómo extender Nmap con Lua para automatizar una verificación concreta**.
+
+---
+
+## Nmap: interpretación de puertos
+
+| Puerto | Significado |
+|---|---|
+| 80/443 abiertos | Superficie web clásica |
+| 22 (SSH) | Acceso administrativo potencial |
+| 3306 (MySQL) | Base de datos expuesta (riesgo crítico) |
+| 8080/8443 | Apps alternativas o paneles internos |
+
+---
+
+## Nmap: interpretación de riesgo
+
+Tres señales de alerta:
+
+- **Servicio innecesario expuesto** → superficie de ataque ampliada
+- **Servicio con versión antigua** → vulnerabilidades conocidas
+- **Servicio administrativo expuesto** → riesgo crítico
+
+---
+
+## Nmap: ejemplos concretos
+
+| Hallazgo | Implicación |
+|---|---|
+| OpenSSH 7.x en sistema moderno | Versión desactualizada, CVEs públicos |
+| HTTP Proxy abierto | Abuso como relay, pivoting |
+| FTP sin cifrado | Credenciales viajan en texto plano |
+| MySQL sin filtro de IP | Acceso directo a la base de datos |
+
+---
+
+## 🧪 Demo 3: Nmap + NSE contra Juice Shop
+
+**Target:** `juice.labs.manuel-roldan.cloud`
+
+Vamos a combinar detección de servicios con scripts NSE para extraer información detallada.
+
+---
+
+## 🧪 Demo 3: Comandos
+
+```bash
+# Detección de servicios y versiones
+nmap -sV juice.labs.manuel-roldan.cloud
+
+# Headers HTTP del servidor
+nmap -sV --script=http-headers juice.labs.manuel-roldan.cloud
+
+# Métodos HTTP permitidos
+nmap --script=http-methods juice.labs.manuel-roldan.cloud
+
+# Certificado SSL y cifrados soportados
+nmap --script=ssl-cert,ssl-enum-ciphers -p 443 juice.labs.manuel-roldan.cloud
+```
+
+---
+
+## 🧪 Demo 3: Discusión
+
+- ¿Qué servicios ven corriendo?
+- ¿Qué versiones reporta?
+- ¿Qué información extra revelan los headers?
+- ¿Cómo se relaciona con lo que encontramos con WhatWeb en la clase pasada?
+
+---
+
+## Correlación de fuentes
+
+Tu meta no es "tener muchos datos", sino **responder preguntas estratégicas**.
+
+Cruzar evidencia de múltiples herramientas para construir una imagen coherente del objetivo.
+
+---
+
+## ¿Qué nos dice cada fuente?
+
+| Herramienta | Aporta |
+|---|---|
+| WhatWeb | Tecnología web (lenguaje, framework, CMS) |
+| Nmap | Servicios de red (puertos, versiones) |
+| Headers HTTP | Políticas de seguridad (o ausencia de ellas) |
+| Rutas descubiertas | Funcionalidad real expuesta |
+
+---
+
+## Ejemplo de correlación
+
+- **WhatWeb** detecta PHP + Apache
+- **Nmap** encuentra puerto 8080 con Tomcat
+- **Headers** muestran modo debug activo
+- **Rutas** exponen `/manager` y `/status`
+
+→ Múltiples aplicaciones con **niveles de hardening diferentes**
+
+→ La pregunta clave: **¿Dónde está la mayor superficie de ataque?**
+
+---
+
+## Descubrimiento de rutas ocultas
+
+¿Por qué existen rutas no documentadas?
+
+- Endpoints legacy que nunca se eliminaron
+- Features internas publicadas por error
+- Entornos de staging expuestos
+- APIs sin interfaz gráfica
+- Funcionalidades deshabilitadas solo visualmente (el endpoint sigue activo)
+
+---
+
+## Impacto de las rutas ocultas
+
+- No documentadas → no auditadas
+- Sin controles de seguridad → acceso directo
+- Menos testeadas → más bugs
+
+Ejemplo crítico:
+
+```
+GET /api/v1/admin/users → 200 OK (sin autenticación)
+```
+
+→ Broken Access Control sin explotación compleja
+
+---
+
+## Rutas sensibles: categorías
+
+| Categoría | Rutas típicas | Riesgo |
+|---|---|---|
+| Autenticación | `/login`, `/oauth`, `/reset-password` | Account takeover |
+| Administración | `/admin`, `/manager`, `/dashboard` | Control total del sistema |
+| Carga de archivos | `/upload`, `/import` | Remote code execution |
+| Backups | `/backup`, `/dump`, `/old` | Exposición total de datos |
+| Documentación | `/swagger`, `/api-docs` | Mapa completo de la API |
+
+---
+
+## Rutas sensibles: lo que revela la documentación
+
+`/swagger` o `/api-docs` te da:
+
+- Todos los endpoints disponibles
+- Parámetros esperados
+- Tipos de datos
+- Validaciones (o falta de ellas)
+
+Es el mapa del tesoro para un atacante.
+
+---
+
+## ☕ Pausa opcional
+
+¿Quieren tomarse 5 minutos?
+
+---
+
+## 🧪 Demo 4: Nikto contra Juice Shop
+
+**Nikto** es un escáner de vulnerabilidades web que busca configuraciones inseguras, archivos peligrosos y versiones conocidas.
+
+```bash
+nikto -h https://juice.labs.manuel-roldan.cloud
+```
+
+---
+
+## 🧪 Demo 4: ¿Qué detecta Nikto?
+
+- Archivos peligrosos expuestos
+- Configuraciones inseguras
+- Versiones con vulnerabilidades conocidas
+- Rutas administrativas comunes
+- Headers de seguridad faltantes
+
+---
+
+## 🧪 Demo 4: Interpretando resultados
+
+| Hallazgo | Significado |
+|---|---|
+| Missing X-Content-Type-Options | Riesgo de MIME sniffing |
+| Headers inusuales (x-recruiting, diagnostics) | Information disclosure |
+| `/ftp/` accesible (200 OK desde robots.txt) | Exposición de archivos |
+| Archivos .tgz, .pem, .jks, .war | Backups y certificados expuestos |
+| Access-Control-Allow-Origin: * | CORS permisivo (cualquier origen) |
+
+---
+
+## 🧪 Demo 4: Discusión
+
+¿Cuál es el hallazgo más crítico y por qué?
+
+Criterios para priorizar:
+
+- ¿Qué impacto tiene si se explota?
+- ¿Qué tan fácil es de explotar?
+- ¿Cuántos usuarios se ven afectados?
+
+---
+
+## Marco mental para vulnerabilidades
+
+Una vulnerabilidad no es un bug aislado.
+
+Es el **resultado de una decisión incorrecta** (o una decisión nunca tomada).
+
+---
+
+## Causas comunes de vulnerabilidades
+
+- Validar solo en el cliente (el atacante usa curl)
+- Confiar en parámetros que vienen del browser
+- Separar autenticación de autorización
+- Dejar configuraciones por defecto
+- No actualizar dependencias
+
+---
+
+## Esquema de análisis: Condición → Acción → Impacto → Evidencia
+
+Usalo como una **plantilla para explicar una vulnerabilidad**. No se refiere a un framework de desarrollo.
+
+| Paso | Pregunta |
+|---|---|
+| Condición | ¿Qué está mal configurado o implementado? |
+| Acción | ¿Qué puede hacer un atacante? |
+| Impacto | ¿Qué consecuencia tiene? |
+| Evidencia | ¿Cómo lo demostrás? |
+
+---
+
+## Esquema de análisis: ejemplo concreto
+
+| Paso | Valor |
+|---|---|
+| Condición | Endpoint acepta ID arbitrario sin validar ownership |
+| Acción | Cambiar `userId=1` por `userId=2` en el request |
+| Impacto | Acceso a datos de otro usuario (violación de confidencialidad) |
+| Evidencia | Request + response mostrando datos ajenos |
+
+---
+
+## OWASP Top 10 Web
+
+Es la **lista de riesgos web más usada** para clasificar y comunicar hallazgos de seguridad.
+
+---
+
+## OWASP Top 10 Web: edición 2021
+
+Es la **última edición completa publicada**. La vamos a usar como referencia base para clasificar hallazgos.
+
+No es para memorizar.
+
+Es un **marco mental** para:
+
+- Clasificar hallazgos
+- Justificar riesgo ante stakeholders
+- Comunicar a gente no técnica
+- Estructurar auditorías
+
+---
+
+## OWASP Top 10 Web 2021: mapeo práctico
+
+Estas categorías siguen siendo la referencia más estable para trabajo práctico y reporte.
+
+| Categoría OWASP | Se manifiesta como... |
+|---|---|
+| A01 - Control de acceso roto | IDOR, bypass de roles, acceso sin autenticación |
+| A02 - Fallas criptográficas | HTTPS débil, datos sin cifrar, hashes rotos |
+| A03 - Inyección | SQLi, command injection, XSS |
+| A05 - Configuración insegura | Debug activo, headers faltantes, defaults |
+
+---
+
+## OWASP Top 10: cómo usarlo
+
+Cuando encontrás algo, pensás:
+
+1. ¿A qué categoría OWASP pertenece?
+2. ¿Por qué? ¿Cuál es la causa raíz?
+3. ¿Qué impacto describe OWASP para esa categoría?
+
+Esto te permite **hablar el mismo idioma** que el equipo de desarrollo y management.
+
+---
+
+## OWASP Web Top 10: actualización 2025
+
+Referencia visual para mostrar por dónde viene evolucionando la lista web de OWASP.
+
+![OWASP Top 10 Web 2025](https://blog.secureflag.com/assets/images/owasp-top-ten-updates.png)
+
+Tomalo como **update / preview** de la edición web. Para clase usamos **OWASP Top 10 Web 2021** porque sigue siendo la última edición completa publicada.
+
+---
+
+## Otras listas OWASP para tener en radar
+
+| Lista | Última versión / edición |
+|---|---|
+| OWASP Top 10 Web | 2021 publicada · update 2025 en circulación |
+| OWASP API Security Top 10 | 2023 |
+| OWASP Mobile Top 10 | 2024 |
+| OWASP Top 10 for LLM Applications | 2025 |
+
+No hay una sola lista OWASP para todo. **Depende del tipo de sistema que estés evaluando**.
+
+---
+
+## Threat Modeling: ¿qué es?
+
+Analizar **antes de atacar** (o antes de construir):
+
+- ¿Qué activos protegemos?
+- ¿Quién los quiere comprometer?
+- ¿Por dónde podrían entrar?
+- ¿Qué pasa si lo logran?
+
+Si OWASP te ayuda a **clasificar lo que ya encontraste**, threat modeling te ayuda a **pensar lo que todavía no viste**.
+
+---
+
+## SDLC vs SSDLC (breve)
+
+**SDLC clásico** aprueba el deploy si:
+- La funcionalidad anda ✓
+- Los tests pasan ✓
+- El cliente acepta ✓
+
+**SSDLC** bloquea el deploy si detecta:
+- Passwords hasheados con MD5
+- HTTP o TLS 1.0
+- Credenciales hardcodeadas en el código
+- Modo debug activo en producción
+
+---
+
+## SSDLC: seguridad en cada fase
+
+```ssdlc-flow
+```
+
+La diferencia real: **la seguridad no aparece al final**. Se integra desde requirements hasta maintain.
+
+---
+
+## Security Gate
+
+Un **security gate** es un punto de control obligatorio en el pipeline donde se validan requisitos de seguridad antes de avanzar.
+
+Si no pasa → no se despliega.
+
+No importa si "funciona perfecto".
+
+---
+
+## 📌 Proyecto integrador — Tarea para casa
+
+**Etapa 1: Análisis Web Corporativo con Scripts NSE**
+
+Target: `juice.labs.manuel-roldan.cloud`
+
+---
+
+## 📌 Tarea: Comandos a ejecutar
+
+```bash
+# Headers HTTP
+nmap --script=http-headers -p 443 juice.labs.manuel-roldan.cloud
+
+# Métodos HTTP permitidos
+nmap --script=http-methods -p 443 juice.labs.manuel-roldan.cloud
+
+# Certificado SSL y cifrados
+nmap --script=ssl-cert,ssl-enum-ciphers -p 443 juice.labs.manuel-roldan.cloud
+```
+
+---
+
+## 📌 Tarea: Entregable
+
+**Reporte ejecutivo** que incluya:
+
+- Hallazgos de cada script NSE
+- Clasificación de riesgo (alto/medio/bajo)
+- Mitigaciones propuestas para cada hallazgo
+- Conclusión: ¿cuál es el estado general de seguridad del target?
+
+---
+
+## Recap del Módulo 1 completo
+
+| Clase 1 | Clase 2 |
+|---|---|
+| Fundamentos HTTP | Correlación de fuentes |
+| Fingerprinting (WhatWeb) | Nmap en profundidad + NSE |
+| Enumeración (Gobuster) | Rutas ocultas y sensibles |
+| Primera foto del target | Nikto, OWASP Top 10, Threat Modeling |
+
+---
+
+## Lo que llevás del Módulo 1
+
+Ahora tenés el **marco mental completo** para la fase de reconocimiento:
+
+1. Identificar tecnologías
+2. Enumerar servicios y rutas
+3. Correlacionar hallazgos
+4. Clasificar riesgos con OWASP
+5. Modelar amenazas con STRIDE
+
+---
+
+## ¿Preguntas?
+
+---
+
+## ¡Gracias!
+
+Nos vemos en el **Módulo 2**.
+
+</script>
+
+    <script>
+        let currentSlide = 1;
+        let totalSlides = 1;
+        let slideTitles = [];
+
+        function escapeHtml(value) {
+            return value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatInline(text) {
+            let html = escapeHtml(text);
+            html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+            html = html.replace(/\[([^\]]+)\]/g, '<span class="placeholder-link">$1</span>');
+            return html;
+        }
+
+        function splitSections(source) {
+            return source
+                .split(/^---\s*$/m)
+                .map((section) => section.trim())
+                .filter(Boolean);
+        }
+
+        function normalizeTitle(text) {
+            return text
+                .replace(/^Slide\s+\d+\s+[—-]\s+/i, '')
+                .replace(/^#+\s*/, '')
+                .trim();
+        }
+
+        function parseSection(section, index) {
+            const lines = section.split('\n');
+            const blocks = [];
+            let pointer = 0;
+            let slideLabel = '';
+
+            while (pointer < lines.length) {
+                const line = lines[pointer];
+                const trimmed = line.trim();
+
+                if (!trimmed) {
+                    pointer += 1;
+                    continue;
+                }
+
+                const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+                if (headingMatch) {
+                    const level = headingMatch[1].length;
+                    let text = headingMatch[2].trim();
+                    if (!slideLabel && level <= 2) {
+                        slideLabel = normalizeTitle(text);
+                        text = slideLabel;
+                    }
+                    blocks.push({ type: 'heading', level, text });
+                    pointer += 1;
+                    continue;
+                }
+
+                if (trimmed.startsWith('```')) {
+                    const language = trimmed.slice(3).trim();
+                    pointer += 1;
+                    const codeLines = [];
+                    while (pointer < lines.length && !lines[pointer].trim().startsWith('```')) {
+                        codeLines.push(lines[pointer]);
+                        pointer += 1;
+                    }
+                    pointer += 1;
+                    blocks.push({ type: 'code', language, content: codeLines.join('\n') });
+                    continue;
+                }
+
+                if (trimmed === '|||') {
+                    blocks.push({ type: 'column-break' });
+                    pointer += 1;
+                    continue;
+                }
+
+                if (trimmed.startsWith('|')) {
+                    const tableLines = [];
+                    while (pointer < lines.length && lines[pointer].trim().startsWith('|')) {
+                        tableLines.push(lines[pointer].trim());
+                        pointer += 1;
+                    }
+                    blocks.push(parseTable(tableLines));
+                    continue;
+                }
+
+                if (trimmed.startsWith('>')) {
+                    const quoteLines = [];
+                    while (pointer < lines.length && lines[pointer].trim().startsWith('>')) {
+                        quoteLines.push(lines[pointer].trim().replace(/^>\s?/, ''));
+                        pointer += 1;
+                    }
+                    blocks.push({ type: 'blockquote', text: quoteLines.join(' ') });
+                    continue;
+                }
+
+                if (trimmed.startsWith('![')) {
+                    const altEnd = trimmed.indexOf('](');
+                    if (altEnd !== -1 && trimmed.endsWith(')')) {
+                        const alt = trimmed.slice(2, altEnd);
+                        const src = trimmed.slice(altEnd + 2, -1);
+                        blocks.push({ type: 'image', alt, src });
+                        pointer += 1;
+                        continue;
+                    }
+                }
+
+                if (/^(?:[-*+]\s+|\d+\.\s+)/.test(trimmed)) {
+                    const ordered = /^\d+\.\s+/.test(trimmed);
+                    const items = [];
+                    while (pointer < lines.length && /^(?:[-*+]\s+|\d+\.\s+)/.test(lines[pointer].trim())) {
+                        items.push(lines[pointer].trim().replace(/^(?:[-*+]\s+|\d+\.\s+)/, ''));
+                        pointer += 1;
+                    }
+                    blocks.push({ type: ordered ? 'ol' : 'ul', items });
+                    continue;
+                }
+
+                const paragraphLines = [];
+                while (pointer < lines.length) {
+                    const current = lines[pointer];
+                    const currentTrimmed = current.trim();
+                    if (!currentTrimmed) {
+                        pointer += 1;
+                        break;
+                    }
+                    if (/^(#{1,6})\s+/.test(currentTrimmed) || currentTrimmed.startsWith('```') || currentTrimmed.startsWith('|') || currentTrimmed.startsWith('>') || currentTrimmed.startsWith('![') || /^(?:[-*+]\s+|\d+\.\s+)/.test(currentTrimmed)) {
+                        break;
+                    }
+                    paragraphLines.push(currentTrimmed);
+                    pointer += 1;
+                }
+                if (paragraphLines.length) {
+                    blocks.push({ type: 'paragraph', text: paragraphLines.join(' ') });
+                }
+            }
+
+            const title = slideLabel || `Slide ${index + 1}`;
+            const layout = detectLayout(blocks, index);
+            return { title, blocks, layout };
+        }
+
+        function parseTable(lines) {
+            const rows = lines.map((line) => line.slice(1, -1).split('|').map((cell) => cell.trim()));
+            const header = rows[0] || [];
+            const body = rows.slice(1).filter((row) => !row.every((cell) => /^:?-{3,}:?$/.test(cell)));
+            return { type: 'table', header, rows: body };
+        }
+
+        function detectLayout(blocks, index) {
+            const contentTypes = new Set(blocks.map((block) => block.type));
+            const onlyHeroBlocks = [...contentTypes].every((type) => ['heading', 'paragraph', 'blockquote'].includes(type));
+            const headingCount = blocks.filter((block) => block.type === 'heading').length;
+            if (index === 0 || (onlyHeroBlocks && headingCount >= 1 && blocks.length <= 5)) {
+                return 'hero';
+            }
+            if (blocks.length === 1 && blocks[0].type === 'heading') {
+                return 'divider';
+            }
+            return 'content';
+        }
+
+        function renderBlock(block) {
+            if (block.type === 'heading') {
+                return `<h${Math.min(block.level, 4)}>${formatInline(block.text)}</h${Math.min(block.level, 4)}>`;
+            }
+            if (block.type === 'paragraph') {
+                const text = formatInline(block.text);
+                if (/^☕/.test(block.text) || / · /.test(block.text) && block.text.length < 90) {
+                    return `<div class="chips"><span class="meta-chip">${text}</span></div>`;
+                }
+                return `<p>${text}</p>`;
+            }
+            if (block.type === 'blockquote') {
+                return `<div class="blockquote">${formatInline(block.text)}</div>`;
+            }
+            if (block.type === 'ul' || block.type === 'ol') {
+                const tag = block.type;
+                return `<${tag}>${block.items.map((item) => `<li>${formatInline(item)}</li>`).join('')}</${tag}>`;
+            }
+            if (block.type === 'table') {
+                return `<div class="table-shell"><table><thead><tr>${block.header.map((cell) => `<th>${formatInline(cell)}</th>`).join('')}</tr></thead><tbody>${block.rows.map((row) => `<tr>${row.map((cell) => `<td>${formatInline(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+            }
+            if (block.type === 'image') {
+                return `<div class="slide-image"><img src="${block.src}" alt="${escapeHtml(block.alt)}" style="max-width:85%;max-height:55vh;margin:1.2rem auto;display:block;border-radius:8px;"></div>`;
+            }
+            if (block.type === 'code') {
+                if (block.language === 'ssdlc-flow') {
+                    return renderSsdlcFlow();
+                }
+                if (block.language === 'qa-accordion') {
+                    return renderQaAccordion(block.content);
+                }
+                return `<div class="code-shell"><pre><code>${escapeHtml(block.content)}</code></pre></div>`;
+            }
+            return '';
+        }
+
+        function renderQaAccordion(content) {
+            const items = [];
+            let current = null;
+
+            content.split('\n').forEach((line) => {
+                const trimmed = line.trim();
+                if (!trimmed) {
+                    return;
+                }
+                if (trimmed.startsWith('Q:')) {
+                    if (current) {
+                        items.push(current);
+                    }
+                    current = { question: trimmed.slice(2).trim(), answers: [] };
+                    return;
+                }
+                if (trimmed.startsWith('A:') && current) {
+                    current.answers.push(trimmed.slice(2).trim());
+                }
+            });
+
+            if (current) {
+                items.push(current);
+            }
+
+            return `<div class="qa-accordion">${items.map((item) => `<details class="qa-item"><summary>${formatInline(item.question)}</summary><div class="qa-answer">${item.answers.map((answer) => `<p>${formatInline(answer)}</p>`).join('')}</div></details>`).join('')}</div>`;
+        }
+
+        function renderSsdlcFlow() {
+            const activities = [
+                { label: 'Integration of<br>security goals' },
+                { label: 'Threat<br>modeling' },
+                { label: 'Code review -<br>security, SAST' },
+                { label: 'Penetration testing', span: 2 },
+                { label: 'Monitoring' }
+            ];
+
+            const phases = ['REQUIREMENTS', 'DESIGN', 'IMPLEMENT', 'TEST', 'DEPLOY', 'MAINTAIN'];
+
+            const activityMarkup = activities.map((activity) => {
+                const spanClass = activity.span === 2 ? ' span-2' : '';
+                return `<div class="ssdlc-activity${spanClass}"><div class="ssdlc-pillar"></div><div class="ssdlc-badge">${activity.label}</div><div class="ssdlc-activity-connector"></div></div>`;
+            }).join('');
+
+            const phaseMarkup = phases.map((phase, index) => {
+                const arrow = index === phases.length - 1 ? 'false' : 'true';
+                return `<div class="ssdlc-lifecycle-stage" data-arrow="${arrow}"><div class="ssdlc-lifecycle"><span>${phase}</span></div></div>`;
+            }).join('');
+
+            return `<div class="ssdlc-shell"><div class="ssdlc-top-grid"><div class="ssdlc-top-card risk">Risk assessment<span class="ssdlc-drop left"></span><span class="ssdlc-drop right"></span></div><div class="ssdlc-top-card vuln">Vulnerability assessments,<br>DAST, SCA<span class="ssdlc-drop center"></span></div></div><div class="ssdlc-activity-grid">${activityMarkup}</div><div class="ssdlc-lifecycle-grid">${phaseMarkup}</div></div>`;
+        }
+
+        function renderSlide(slide, index) {
+            const section = document.createElement('section');
+            const classes = ['slide'];
+            if (index === 0) {
+                classes.push('active');
+            }
+            if (slide.layout === 'hero' || slide.layout === 'divider') {
+                classes.push('spotlight-slide');
+            }
+            section.className = classes.join(' ');
+            section.dataset.slide = String(index + 1);
+
+            if (slide.layout === 'divider') {
+                section.innerHTML = `<div class="slide-title"><div class="divider-banner">${slide.blocks.map(renderBlock).join('')}</div></div>`;
+                return section;
+            }
+
+            const wrapperClass = slide.layout === 'hero' ? 'slide-title' : 'slide-content';
+            let body;
+
+            const colBreakIdx = slide.blocks.findIndex(b => b.type === 'column-break');
+            if (colBreakIdx !== -1) {
+                // Separate heading blocks from content blocks
+                const headingBlocks = [];
+                let contentStart = 0;
+                for (let i = 0; i < slide.blocks.length; i++) {
+                    if (slide.blocks[i].type === 'heading') {
+                        headingBlocks.push(slide.blocks[i]);
+                        contentStart = i + 1;
+                    } else break;
+                }
+                const contentBlocks = slide.blocks.slice(contentStart);
+                const actualBreakIdx = contentBlocks.findIndex(b => b.type === 'column-break');
+                const leftBlocks = contentBlocks.slice(0, actualBreakIdx);
+                const rightBlocks = contentBlocks.slice(actualBreakIdx + 1);
+                const leftHtml = leftBlocks.map(b => {
+                    if (b.type === 'image') return `<img src="${b.src}" alt="${escapeHtml(b.alt)}" style="width:200px;height:200px;object-fit:cover;border-radius:50%;box-shadow:0 4px 24px rgba(0,0,0,0.4);">`;
+                    return renderBlock(b);
+                }).join('');
+                const rightHtml = rightBlocks.map(b => {
+                    if (b.type === 'heading') return `<h${b.level} style="color:var(--accent-cyan);font-size:1.8rem;margin-bottom:0.3rem;">${formatInline(b.text)}</h${b.level}>`;
+                    if (b.type === 'paragraph' && /^[✉️🔗📧]/.test(b.text)) return `<p style="color:var(--accent-cyan);opacity:0.85;font-size:0.95rem;margin:0.3rem 0;">${formatInline(b.text)}</p>`;
+                    return renderBlock(b);
+                }).join('');
+                body = headingBlocks.map(renderBlock).join('') +
+                    `<div style="display:flex;align-items:center;gap:3rem;width:100%;padding:1rem 2rem;">` +
+                    `<div style="flex:0 0 auto;">${leftHtml}</div>` +
+                    `<div style="flex:1;text-align:left;">${rightHtml}</div>` +
+                    `</div>`;
+            } else {
+                body = slide.blocks.map(renderBlock).join('');
+            }
+
+            if (slide.layout === 'hero') {
+                body = body.replace(/<p>([^<]{1,80})<\/p>/, '<p class="lead">$1</p>');
+            }
+
+            const hasImage = slide.blocks.some(b => b.type === 'image');
+            const hasColumns = slide.blocks.some(b => b.type === 'column-break');
+            const centerStyle = (hasImage && !hasColumns) ? ' style="text-align:center;"' : '';
+
+            section.innerHTML = `<div class="${wrapperClass}"${centerStyle}>${body}</div>`;
+            return section;
+        }
+
+        function initializeSlides() {
+            const source = document.getElementById('deck-source').textContent.trim();
+            const sections = splitSections(source);
+            const metadata = sections.shift();
+            const slides = sections.map(parseSection);
+            if (metadata) {
+                document.title = metadata.split('\n')[0].replace(/^#\s*/, '').trim();
+            }
+
+            slideTitles = slides.map((slide) => slide.title);
+            totalSlides = slides.length;
+
+            const presentation = document.getElementById('presentation');
+            presentation.innerHTML = '';
+            slides.forEach((slide, index) => {
+                presentation.appendChild(renderSlide(slide, index));
+            });
+
+            initializeMenu();
+            updateNav();
+        }
+
+        function initializeMenu() {
+            const menuContainer = document.getElementById('menu-items');
+            menuContainer.innerHTML = '';
+            slideTitles.forEach((title, index) => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'slide-menu-item';
+                if (index === 0) item.classList.add('current');
+                item.innerHTML = `<span class="slide-number">${index + 1}</span>${escapeHtml(title)}`;
+                item.onclick = () => {
+                    goToSlide(index + 1);
+                    toggleMenu();
+                };
+                menuContainer.appendChild(item);
+            });
+        }
+
+        function toggleMenu() {
+            document.getElementById('slide-menu').classList.toggle('active');
+        }
+
+        function getThemeIconMarkup(isLightMode) {
+            if (isLightMode) {
+                return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.25"></circle><path d="M12 2.75v2.1"></path><path d="M12 19.15v2.1"></path><path d="M2.75 12h2.1"></path><path d="M19.15 12h2.1"></path><path d="M5.46 5.46l1.48 1.48"></path><path d="M17.06 17.06l1.48 1.48"></path><path d="M18.54 5.46l-1.48 1.48"></path><path d="M6.94 17.06l-1.48 1.48"></path></svg>';
+            }
+            return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.6 8.6 0 1 1 9.4 4 6.9 6.9 0 0 0 20 14.6z"></path></svg>';
+        }
+
+        function updateThemeIcon() {
+            const themeIcon = document.getElementById('theme-icon');
+            if (!themeIcon) return;
+            themeIcon.innerHTML = getThemeIconMarkup(document.body.classList.contains('light-mode'));
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            updateThemeIcon();
+        }
+
+        function updateNav() {
+            document.getElementById('current-slide').textContent = currentSlide;
+            document.getElementById('total-slides').textContent = totalSlides;
+            document.getElementById('prev-btn').disabled = currentSlide === 1;
+            document.getElementById('next-btn').disabled = currentSlide === totalSlides;
+            const progress = totalSlides > 1 ? ((currentSlide - 1) / (totalSlides - 1)) * 100 : 100;
+            document.getElementById('progress-fill').style.width = `${progress}%`;
+            document.querySelectorAll('.slide-menu-item').forEach((item, index) => item.classList.toggle('current', index === currentSlide - 1));
+        }
+
+        function goToSlide(number) {
+            if (number < 1 || number > totalSlides || number === currentSlide) return;
+            const slides = document.querySelectorAll('.slide');
+            const current = slides[currentSlide - 1];
+            const next = slides[number - 1];
+            current.classList.remove('active');
+            if (number > currentSlide) {
+                current.classList.add('to-left');
+            } else {
+                current.classList.remove('to-left');
+            }
+            next.classList.remove('to-left');
+            next.classList.add('active');
+            currentSlide = number;
+            updateNav();
+        }
+
+        function nextSlide() {
+            goToSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            goToSlide(currentSlide - 1);
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') nextSlide();
+            if (event.key === 'ArrowLeft' || event.key === 'PageUp') prevSlide();
+            if (event.key === 'Escape') document.getElementById('slide-menu').classList.remove('active');
+        });
+
+        initializeSlides();
+        updateThemeIcon();
+    </script>
+</body>
+</html>
