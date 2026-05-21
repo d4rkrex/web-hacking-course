@@ -4,6 +4,7 @@
 
 # Notas internas del profesor (no publicar)
 **/notas_para_el_profe.md
+**/guion_demo*.md
 
 # Material aún no dictado
 Modulo-1/herramientas_modulo_1.md
@@ -12,11 +13,20 @@ Modulo-1/herramientas_modulo_1.md
 infra/
 SETUP_COMPLETO.md
 Modulo-1/lab_setup.md
+/.env
 
 # Archivos internos del agente/profesor
 .copilot/
 AGENTS.md
 templates/
+template_footer.txt
+LABS_REFERENCIA.md
+
+# Directorios que son repos separados (no submodules)
+GF-patterns/
+
+# Comandos en root (movidos a Modulo-3/)
+/comandos_clase_3_1.md
 
 # IDE / Editor
 .vscode/
