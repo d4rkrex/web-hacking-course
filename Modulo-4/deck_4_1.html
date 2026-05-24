@@ -1092,8 +1092,12 @@
 - **BOLA** — Broken Object Level Authorization
 - **Mass Assignment** — campos que no deberías poder enviar
 - **JWT attacks** — manipular tokens de autenticación
-- **File Upload → RCE** — subir código ejecutable
-- **Metasploit** para web — automatizar la explotación
+- **Business Logic** — abusar el flujo de negocio
+- **API Discovery** — swagger expuesto y endpoints ocultos
+- **Sensitive Data** — secrets en JS y localStorage
+- **Client-side Validation Bypass** — el frontend miente
+- **Password Reset débil** — OSINT + preguntas de seguridad
+- **File Upload → RCE** + **Metasploit** — DVWA
 
 **Patrón de la clase:** explicar → detectar → demo en vivo
 
@@ -1467,13 +1471,239 @@ run
 
 ---
 
+## Business Logic Abuse
+
+---
+
+## Business Logic — qué es
+
+No es un bug de código. Es **usar la app como fue diseñada, pero de forma no intencionada**.
+
+```
+Casos clásicos en Juice Shop:
+- Precio negativo en el carrito → descuento infinito
+- Descuentos acumulables
+- Comprar productos que no existen
+- Cambiar BasketId para usar el carrito de otro usuario
+```
+
+| Categoría | OWASP API |
+| --- | --- |
+| Flujo de negocio no restringido | API6: Unrestricted Access to Sensitive Business Flows |
+| BOLA en basket | API1: BOLA |
+
+---
+
+## Demo — Business Logic en Juice Shop
+
+```http
+# Precio negativo — modificar request en Burp
+PUT /api/BasketItems/7
+{"quantity":-100}
+→ Total del carrito: -$500 (cobro negativo)
+
+# Cambiar BasketId de otro usuario (BOLA)
+GET /rest/basket/1
+GET /rest/basket/2
+Authorization: Bearer <tu-token>
+→ Ver carrito de otro usuario
+```
+
+Intruder: iterar BasketId del 1 al 20 para ver todos los carritos
+
+---
+
+## API Discovery
+
+---
+
+## API Discovery — la API te lo cuenta todo
+
+Antes de atacar, **mapear** qué endpoints existen.
+
+```
+En Juice Shop → DevTools → Network
+→ Filtrar por XHR / Fetch
+→ Ver todas las llamadas a /api/* y /rest/*
+
+Endpoints interesantes encontrados:
+  GET  /api/Users/        ← lista todos los usuarios (admin)
+  GET  /api/Products/     ← catálogo completo
+  POST /api/Orders/       ← crear orden
+  GET  /api-docs          ← ¡Swagger/OpenAPI expuesto!
+```
+
+---
+
+## Demo — Swagger expuesto en Juice Shop
+
+```
+1. Abrir: https://juice.labs.../api-docs
+
+2. Ver TODOS los endpoints documentados
+   → Algunos no están enlazados en la UI
+   → Incluye parámetros y formatos esperados
+
+3. Buscar endpoints "admin only" sin protección:
+   DELETE /api/Users/:id
+   GET /api/Users/ (lista completa)
+
+4. Intentar directamente desde Swagger UI
+   o copiar el curl → Burp → manipular
+```
+
+> Si hay documentación de API expuesta en producción = regalo para el atacante.
+
+---
+
+## Sensitive Data Exposure
+
+---
+
+## Sensitive Data — lo que no debería estar ahí
+
+Los atacantes buscan secrets **antes de explotar** cualquier cosa.
+
+```
+Dónde mirar en Juice Shop:
+
+DevTools → Sources → buscar en JS bundles:
+  - Contraseñas hardcodeadas
+  - API keys
+  - JWT secrets
+  - URLs internas
+
+DevTools → Application → Local Storage:
+  - Token JWT guardado en localStorage (XSS lo roba fácil)
+  - Datos de usuario serializados
+```
+
+---
+
+## Demo — Secrets en JS de Juice Shop
+
+```
+1. DevTools → Sources → main.js (bundle Angular)
+   Ctrl+F: "password"  → encuentra credenciales hardcodeadas
+   Ctrl+F: "secret"    → encuentra JWT secret ("secret")
+   Ctrl+F: "token"     → encuentra cómo se guarda el auth
+
+2. Application → Local Storage → localhost
+   → Ver token JWT completo
+   → Copiarlo y decodear en jwt.io
+
+3. Network → buscar headers de respuesta:
+   X-Powered-By: Express   ← framework expuesto
+   Server: nginx/1.14      ← versión expuesta (CVE searchable)
+```
+
+**Takeaway:** el frontend Angular compila todo el código cliente. El atacante lo lee.
+
+---
+
+## Client-side Validation Bypass
+
+---
+
+## Bypass — el frontend miente
+
+Las validaciones del lado del cliente (HTML5, JavaScript) son **solo UX, no seguridad**.
+
+```
+Ejemplo: cantidad mínima de 1 en el carrito
+→ El frontend no deja escribir 0 o negativo
+→ Pero si capturas el request en Burp...
+```
+
+```http
+PUT /api/BasketItems/7
+{"quantity":-100}
+```
+
+El servidor no valida → acepta el cambio.
+
+**Regla de oro:** toda validación del cliente debe replicarse en el servidor.
+
+---
+
+## Demo — Client-side Validation en Juice Shop
+
+```
+1. Agregar producto al carrito en la UI
+
+2. Burp → Intercept ON
+
+3. Cambiar cantidad a -100 en el request:
+   {"quantity": -100}
+
+4. Forward → el carrito ahora tiene precio negativo
+
+5. También: cambiar productId por uno inexistente
+   → Ver qué responde el servidor
+```
+
+**También aplica a:**
+- Campos de formulario `maxlength` o `disabled`
+- Filtros de tipo de archivo en inputs
+- Lógica de precios/descuentos calculada solo en el frontend
+
+---
+
+## Password Reset débil
+
+---
+
+## Password Reset — autenticación que se puede bypassear
+
+Juice Shop usa **preguntas de seguridad** cuyas respuestas son obtenibles por OSINT.
+
+```
+Flujo vulnerable:
+1. Ir a Forgot Password
+2. Ingresar email de la víctima (visible en reseñas, perfil público)
+3. Responder pregunta de seguridad
+4. Cambiar contraseña sin verificación extra
+```
+
+Los usuarios de Juice Shop tienen preguntas como:
+- "¿Nombre de tu primera mascota?"
+- "¿Ciudad donde naciste?"
+
+**Si el email es real → las respuestas están en redes sociales.**
+
+---
+
+## Demo — Password Reset en Juice Shop
+
+```
+Target: admin@juice-sh.op
+
+1. Ir a /#/forgot-password
+2. Email: admin@juice-sh.op
+3. Pregunta: "What is your mother maiden name?"
+4. Respuesta: "Simpson" (lore del personaje en el código fuente)
+
+Target: jim@juice-sh.op
+Pregunta: "What is your favorite movie?"
+Respuesta: "Star Wars" (nombre de usuario = Jim → referencia Star Trek)
+
+→ Cambiar contraseña del admin sin saber la original
+```
+
+**OWASP API2 — Broken Authentication:** el mecanismo de recuperación es parte del flujo de autenticación.
+
+
 ## Resumen de lo aprendido
 
 - **BOLA:** cambiar IDs en la URL accede a recursos de otros usuarios
 - **Mass Assignment:** enviar `role:admin` en el JSON para escalar privilegios
 - **JWT:** algorithm none, weak secret, modificar payload con secret conocido
-- **File Upload:** webshell PHP, bypass por extensión / MIME / magic bytes
-- **Metasploit:** msfvenom genera payloads, multi/handler recibe reverse shell
+- **Business Logic:** precios negativos, BOLA en carrito, flujos no restringidos
+- **API Discovery:** Swagger expuesto = mapa de todos los endpoints
+- **Sensitive Data:** secrets hardcodeados en JS bundle, JWT en localStorage
+- **Validation Bypass:** el frontend bloquea, el servidor no valida
+- **Password Reset:** OSINT + preguntas débiles → cambio de contraseña sin auth
+- **File Upload + Metasploit:** RCE via webshell PHP
 
 **Las APIs confían demasiado en el cliente. El cliente siempre puede mentir.**
 
