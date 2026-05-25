@@ -1090,9 +1090,10 @@
 ## Agenda
 
 - **BOLA** — Broken Object Level Authorization
-- **Mass Assignment** — campos que no deberías poder enviar
+- **Mass Assignment** — campos que no deberías poder enviar (API3)
 - **JWT attacks** — manipular tokens de autenticación
-- **Business Logic** — abusar el flujo de negocio
+- **API5** — operaciones de admin sin ser admin (`PUT /api/Products`)
+- **API6 / Business Logic** — precio negativo, cupones vencidos en el JS
 - **API Discovery** — swagger expuesto y endpoints ocultos
 - **Sensitive Data** — secrets en JS y localStorage
 - **Client-side Validation Bypass** — el frontend miente
@@ -1130,18 +1131,18 @@
 
 ## OWASP API Security Top 10
 
-| ID | Nombre | Descripción |
+| ID | Nombre (2023) | Demo en clase |
 | --- | --- | --- |
-| **API1** | **BOLA** | Acceder a objetos de otro usuario cambiando el ID |
-| API2 | Broken Authentication | Tokens débiles, sin expiración, reutilizables |
-| API3 | Broken Object Property Auth | Leer/escribir propiedades restringidas |
-| API4 | Unrestricted Resource Consumption | Sin rate limiting, DDoS posible |
-| API5 | Broken Function Level Auth | Llamar endpoints de admin sin serlo |
-| **API6** | **Mass Assignment** | El servidor acepta campos extra del cliente |
-| API7 | SSRF | El servidor hace requests internos por ti |
-| **API8** | **Security Misconfiguration** | Docs expuestas, CORS abierto, headers faltantes |
-| API9 | Improper Inventory Management | Versiones viejas sin dar de baja |
-| API10 | Unsafe Consumption of APIs | Confiar ciegamente en APIs de terceros |
+| **API1** | **Broken Object Level Auth (BOLA)** | Cambiar ID en `/api/Users/N` |
+| API2 | Broken Authentication | JWT débil, password reset |
+| **API3** | **Broken Object Property Level Auth** | Mass Assignment: `role:admin` al registrarse |
+| API4 | Unrestricted Resource Consumption | Rate limiting ausente |
+| **API5** | **Broken Function Level Auth** | `PUT /api/Products` como usuario normal |
+| **API6** | **Unrestricted Access to Sensitive Business Flows** | Precio negativo, cupón vencido |
+| API7 | Server Side Request Forgery (SSRF) | — |
+| **API8** | **Security Misconfiguration** | Swagger expuesto, secrets en JS |
+| API9 | Improper Inventory Management | Endpoints sin dar de baja |
+| API10 | Unsafe Consumption of APIs | — |
 
 ---
 
@@ -1221,7 +1222,7 @@ Burp Intruder: payload numérico 1 a 50 para enumerar usuarios
 
 ---
 
-## API6: Mass Assignment
+## API3: Mass Assignment
 
 ---
 
@@ -1471,7 +1472,57 @@ run
 
 ---
 
-## Business Logic Abuse
+## API5: Broken Function Level Authorization
+
+---
+
+## API5 — usuarios normales llamando endpoints de admin
+
+El servidor no verifica el **rol** del usuario, solo que esté autenticado.
+
+```http
+PUT /api/Products/1
+Authorization: Bearer <token-usuario-normal>
+Content-Type: application/json
+
+{
+  "price": 0.00,
+  "name": "FREE BEER",
+  "description": "Hackeado por API5"
+}
+```
+
+→ Juice Shop acepta el cambio. El producto se actualiza para **todos los usuarios**.
+
+**Por qué es grave:** cualquier cliente autenticado puede modificar el catálogo, borrar reviews, ver listas de usuarios — operaciones reservadas para admins.
+
+---
+
+## Demo — PUT /api/Products en Juice Shop
+
+```
+1. Login como usuario normal
+
+2. Burp → capturar cualquier request
+   Cambiar a:
+   PUT /api/Products/1
+   {"price": 0.00, "name": "FREE BEER"}
+
+3. Forward → recargar la tienda en el browser
+
+4. El producto cambió de nombre y precio para todos
+   → Checkout con precio $0.00
+
+5. ¿Hay validación de rol? No.
+   El servidor solo verifica Bearer token válido.
+```
+
+**Diferencia con BOLA (API1):** BOLA es acceder a *datos* de otro usuario.
+API5 es ejecutar *operaciones* que solo debería poder hacer un admin.
+
+---
+
+## API6: Business Logic
 
 ---
 
@@ -1489,7 +1540,8 @@ Casos clásicos en Juice Shop:
 
 | Categoría | OWASP API |
 | --- | --- |
-| Flujo de negocio no restringido | API6: Unrestricted Access to Sensitive Business Flows |
+| Flujo de negocio no restringido | **API6** |
+| `PUT /api/Products` (precio/nombre) | **API5** |
 | BOLA en basket | API1: BOLA |
 
 ---
@@ -1500,16 +1552,60 @@ Casos clásicos en Juice Shop:
 # Precio negativo — modificar request en Burp
 PUT /api/BasketItems/7
 {"quantity":-100}
-→ Total del carrito: -$500 (cobro negativo)
+→ Total del carrito: -$500
 
 # Cambiar BasketId de otro usuario (BOLA)
 GET /rest/basket/1
-GET /rest/basket/2
 Authorization: Bearer <tu-token>
 → Ver carrito de otro usuario
 ```
 
-Intruder: iterar BasketId del 1 al 20 para ver todos los carritos
+---
+
+## Cupones vencidos — secrets en el JS
+
+Los cupones de Juice Shop están **hardcodeados en el JavaScript del frontend**.
+
+```
+1. DevTools → Sources → main.js
+   Buscar: "coupon" o "WMNSDY" o "ORANGE"
+
+   Encontrarás algo como:
+   {code: "WMNSDY2019", discount: 75, validOn: 1551999600000}
+   {code: "ORANGE2024", discount: 10, validOn: ...}
+```
+
+El código de validación también está en el JS:
+
+```javascript
+// Validación del cupón — lado cliente
+if (coupon.validOn < Date.now()) {
+  // cupón vencido — rechazar
+}
+```
+
+---
+
+## Demo — Aplicar cupón vencido
+
+```
+Opción 1 — Interceptar en Burp y saltear validación de fecha:
+  POST /rest/basket/1/coupon/WMNSDY2019
+  → El backend no re-valida la fecha → aplica el 75% off
+
+Opción 2 — Manipular el JS en DevTools:
+  DevTools → Sources → main.js (pretty print)
+  Buscar la función de validación de fecha
+  Cambiar: if (coupon.validOn < Date.now())
+  Por: if (false)
+  → Todos los cupones vencidos se aceptan en el frontend
+
+Opción 3 — Leer cupones vigentes del JS y aplicarlos directamente
+  Sin pasar por la UI — request directo con Burp
+```
+
+**Enseñanza:** la validación de cupones nunca debe ser solo cliente-side.
+El backend debe verificar vigencia independientemente.
 
 ---
 
@@ -1696,9 +1792,10 @@ Respuesta: "Star Wars" (nombre de usuario = Jim → referencia Star Trek)
 ## Resumen de lo aprendido
 
 - **BOLA:** cambiar IDs en la URL accede a recursos de otros usuarios
-- **Mass Assignment:** enviar `role:admin` en el JSON para escalar privilegios
+- **Mass Assignment (API3):** enviar `role:admin` en el JSON para escalar privilegios
 - **JWT:** algorithm none, weak secret, modificar payload con secret conocido
-- **Business Logic:** precios negativos, BOLA en carrito, flujos no restringidos
+- **API5:** `PUT /api/Products` como usuario normal — cambiar precio a $0
+- **API6 / Business Logic:** precio negativo en carrito, cupones vencidos hardcodeados en JS
 - **API Discovery:** Swagger expuesto = mapa de todos los endpoints
 - **Sensitive Data:** secrets hardcodeados en JS bundle, JWT en localStorage
 - **Validation Bypass:** el frontend bloquea, el servidor no valida
