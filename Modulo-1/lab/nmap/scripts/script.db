@@ -1,0 +1,7 @@
+Entry {
+  filename = "http-security-headers-simple.nse",
+  categories = {
+    "discovery",
+    "safe",
+  }
+}

