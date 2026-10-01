@@ -23,6 +23,17 @@ dig +short educacionit.com
 
 ---
 
+### whois — Registro del dominio
+
+```bash
+# Quién registró el dominio, fechas de alta/vencimiento, nameservers
+whois educacionit.com
+```
+
+Preguntas clave al leer el resultado: ¿dónde está hosteado? ¿hay subdominios interesantes? ¿cuándo vence el dominio?
+
+---
+
 ### curl + ipinfo.io — Geolocalización de IPs
 
 ```bash
@@ -40,8 +51,8 @@ curl https://ipinfo.io/54.207.106.237
 
 ```bash
 
-# Buscar en Google
-theHarvester -d educacionit.com -b google
+# Buscar en Yahoo (motor de búsqueda genérico, sin API key)
+theHarvester -d educacionit.com -b yahoo
 
 # Buscar en múltiples fuentes pasivas
 theHarvester -d educacionit.com -b crtsh,dnsdumpster,duckduckgo,urlscan,hackertarget
@@ -109,6 +120,22 @@ whatweb -a 4 https://juice.labs.manuel-roldan.cloud
 | 1 (default) | Un solo request GET, analiza solo esa respuesta |
 | 3 | Requests adicionales a paths comunes para confirmar tecnologías |
 | 4 | Prueba todos los plugins agresivos (genera mucho tráfico) |
+
+---
+
+### nmap — Puertos y servicios
+
+```bash
+# Servicios y versiones sobre los puertos web
+nmap -sV -p 80,443 juice.labs.manuel-roldan.cloud
+```
+
+| Flag | Descripción |
+|------|-------------|
+| `-sV` | Detección de versión de servicio (banner grabbing) |
+| `-p 80,443` | Limita el escaneo a esos puertos (más rápido que un full scan) |
+
+Completa el fingerprint: WhatWeb/Wappalyzer dan la capa de aplicación, Nmap da la capa de infraestructura (puertos abiertos, versión de servicio).
 
 ---
 
