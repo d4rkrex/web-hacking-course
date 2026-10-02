@@ -1,7 +1,7 @@
 # Deck — Clase 2 · Módulo 1
 
 > Curso de Web Hacking
-> Duración: 2 horas (sin receso obligatorio)
+> Duración: 3 horas (con pausa intermedia)
 > Formato: teoría + práctica intercaladas (demos guiadas)
 
 ---
@@ -31,7 +31,8 @@
 2. Correlación de fuentes y enumeración avanzada
 3. Nmap en profundidad + scripts NSE
 4. Descubrimiento de rutas ocultas y sensibles
-5. Nikto: escaneo automatizado de vulnerabilidades
+5. Burp Suite: intercept, HTTP history y Repeater
+6. Nikto: escaneo automatizado de vulnerabilidades
 
 ---
 
@@ -435,7 +436,104 @@ Es el mapa del tesoro para un atacante.
 
 ---
 
-## 🧪 Demo 4: Nikto contra Juice Shop
+## 🔧 Burp Suite: el proxy que faltaba
+
+`curl` nos sirvió hasta acá, pero tiene techo: no guarda historial, no compara requests, no reenvía con un clic.
+
+**Burp Suite** es un proxy intermedio entre el browser y el servidor: ve, intercepta y te deja modificar cada request antes de que salga.
+
+---
+
+## Burp Suite: cómo se ubica
+
+```
+Browser → [Burp Proxy :8080] → Servidor
+              ↑
+      vos interceptás/modificás acá
+```
+
+Todo el tráfico HTTP/HTTPS pasa por el proxy antes de llegar al target. Para HTTPS, el browser tiene que confiar en el certificado CA de Burp.
+
+---
+
+## Burp Suite: setup rápido
+
+| Paso | Acción |
+|---|---|
+| 1 | Burp Suite Community, Proxy escuchando en `127.0.0.1:8080` |
+| 2 | Configurar el browser (o FoxyProxy) para usar ese proxy |
+| 3 | Visitar `http://burp` para descargar el certificado CA |
+| 4 | Importar el certificado como autoridad confiable en el browser |
+
+Sin el certificado importado, HTTPS no funciona con Intercept activo.
+
+---
+
+## Burp Suite: módulos que usamos hoy
+
+| Módulo | Para qué sirve |
+|---|---|
+| Proxy / Intercept | Pausa cada request antes de que salga, para editarlo a mano |
+| HTTP history | Guarda todo el tráfico pasado, con request y response completos |
+| Repeater | Reenvía un request modificado las veces que quieras, sin tocar el browser |
+| Target / Site map | Arma automáticamente un mapa del sitio con lo que vas navegando |
+
+**Intruder** (automatización de payloads) lo vemos en el Módulo 2.
+
+---
+
+## 🧪 Demo 5: Intercept en vivo contra Juice Shop
+
+**Target:** `https://juice.labs.manuel-roldan.cloud`
+
+Secuencia sugerida en vivo:
+1. Activar Intercept
+2. Hacer login en la UI con un usuario cualquiera
+3. Pausar el request en Burp antes de que llegue al servidor
+4. Mostrar el body: email + password viajando en JSON plano
+5. Soltar el request (Forward) y ver la respuesta completa en HTTP history
+
+---
+
+## 🧪 Demo 6: de curl a Repeater
+
+Clase pasada encontramos con `curl` que `/ftp/package.json.bak` da 403, pero con Null Byte (`%2500.md`) el servidor lo sirve igual (ver `NullByte.md`).
+
+Repetimos el mismo hallazgo con Repeater, sin reescribir el comando cada vez:
+1. Capturar en HTTP history el `GET` a `/ftp/package.json.bak`
+2. Enviarlo a Repeater (clic derecho → *Send to Repeater*)
+3. Editar la URL ahí mismo, agregando `%2500.md`
+4. Reenviar con un clic y comparar las dos respuestas lado a lado
+
+---
+
+## 🧪 Discusión: ¿por qué no solo con curl?
+
+```qa-accordion
+Q: ¿Qué gana Repeater que curl no te da?
+A: Historial visual, comparación lado a lado, no reescribir comandos.
+A: Editás cualquier parte del request (headers, cookies, body) sin reconstruir la sintaxis a mano.
+
+Q: ¿Para qué sirve ver el request crudo en Intercept?
+A: Para ver exactamente qué manda el browser, sin asumir nada.
+A: Muchas veces hay headers o cookies que agrega el frontend solo, no vos.
+
+Q: ¿Dónde entra esto en el flujo de ataque?
+A: Primero identificás el punto de interés con recon (Gobuster, Nmap, Nikto).
+A: Después usás Burp para manipular ese punto con precisión.
+```
+
+---
+
+## Burp Suite: gancho a Módulo 2
+
+Todo lo que armaste hoy con Repeater (interceptar, editar, reenviar) es la base para lo que viene.
+
+En el Módulo 2 vas a usar **Intruder** para automatizar el envío de payloads de SQL Injection sobre el mismo tipo de request que acabás de manipular a mano.
+
+---
+
+## 🧪 Demo 7: Nikto contra Juice Shop
 
 **Nikto** es un escáner de vulnerabilidades web que busca configuraciones inseguras, archivos peligrosos y versiones conocidas.
 
@@ -445,7 +543,7 @@ nikto -h https://juice.labs.manuel-roldan.cloud
 
 ---
 
-## 🧪 Demo 4: ¿Qué detecta Nikto?
+## 🧪 Demo 7: ¿Qué detecta Nikto?
 
 - Archivos peligrosos expuestos
 - Configuraciones inseguras
@@ -455,7 +553,7 @@ nikto -h https://juice.labs.manuel-roldan.cloud
 
 ---
 
-## 🧪 Demo 4: Interpretando resultados
+## 🧪 Demo 7: Interpretando resultados
 
 | Hallazgo | Significado |
 |---|---|
@@ -467,7 +565,7 @@ nikto -h https://juice.labs.manuel-roldan.cloud
 
 ---
 
-## 🧪 Demo 4: Discusión
+## 🧪 Demo 7: Discusión
 
 ¿Cuál es el hallazgo más crítico y por qué?
 
@@ -678,7 +776,8 @@ nmap --script=ssl-cert,ssl-enum-ciphers -p 443 juice.labs.manuel-roldan.cloud
 | Fundamentos HTTP | Correlación de fuentes |
 | Fingerprinting (WhatWeb) | Nmap en profundidad + NSE |
 | Enumeración (Gobuster) | Rutas ocultas y sensibles |
-| Primera foto del target | Nikto, OWASP Top 10, Threat Modeling |
+| Primera foto del target | Burp Suite: intercept + Repeater |
+| — | Nikto, OWASP Top 10, Threat Modeling |
 
 ---
 
@@ -688,9 +787,10 @@ Ahora tenés el **marco mental completo** para la fase de reconocimiento:
 
 1. Identificar tecnologías
 2. Enumerar servicios y rutas
-3. Correlacionar hallazgos
-4. Clasificar riesgos con OWASP
-5. Modelar amenazas con STRIDE
+3. Manipular requests con Burp Suite (Proxy + Repeater)
+4. Correlacionar hallazgos
+5. Clasificar riesgos con OWASP
+6. Modelar amenazas con STRIDE
 
 ---
 

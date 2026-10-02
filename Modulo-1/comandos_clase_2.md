@@ -85,6 +85,46 @@ gobuster dir -u https://juice.labs.manuel-roldan.cloud \
 
 ---
 
+## Burp Suite — Proxy intercept y Repeater
+
+Setup del proxy (una vez por sesión):
+
+```
+Burp Suite → Proxy → Options → Proxy Listeners → 127.0.0.1:8080
+Browser (o FoxyProxy) → usar proxy 127.0.0.1:8080
+Browser → visitar http://burp → descargar e importar certificado CA
+```
+
+Flujo de la demo (Intercept):
+
+```
+Proxy → Intercept → Intercept is on
+Login en Juice Shop desde el browser
+Ver el request pausado: POST /rest/user/login con email+password en JSON plano
+Forward → aparece en Proxy → HTTP history
+```
+
+Flujo de la demo (Repeater, replicando el Null Byte de NullByte.md):
+
+```
+HTTP history → click derecho sobre GET /ftp/package.json.bak → Send to Repeater
+Repeater → editar la URL: /ftp/package.json.bak%2500.md
+Send → comparar status/response contra el request original (403 vs 200)
+```
+
+| Módulo | Uso |
+|--------|-----|
+| Proxy / Intercept | Pausar y editar un request antes de que salga |
+| HTTP history | Historial completo de requests/responses capturados |
+| Repeater | Reenviar un request editado, cuantas veces haga falta |
+| Target / Site map | Mapa del sitio armado a partir de la navegación |
+
+**Notas:**
+- Sin el certificado CA importado, HTTPS falla con Intercept activo.
+- Intruder (automatización de payloads) se ve recién en Módulo 2.
+
+---
+
 ## Nikto — Escaneo de vulnerabilidades web
 
 ```bash
