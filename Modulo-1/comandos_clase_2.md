@@ -199,7 +199,9 @@ curl -sI https://juice.labs.manuel-roldan.cloud
 curl -s https://juice.labs.manuel-roldan.cloud/api/version
 
 # Extraer rutas de la API desde el JavaScript del frontend
-curl -s https://juice.labs.manuel-roldan.cloud/main.js | grep -oP '"/api/[^"]+"|"/rest/[^"]+"' | sort -u
+# El build actual de Juice Shop usa template literals (backticks), no comillas dobles:
+# `/rest/web3`, `/api/Users`, etc. — el regex tiene que matchear ambos delimitadores.
+curl -s https://juice.labs.manuel-roldan.cloud/main.js | grep -oE '[`"]/(api|rest)/[^`"]+[`"]' | tr -d '`"' | sort -u
 
 # Null Byte Injection para bypass de extensión
 curl -s "https://juice.labs.manuel-roldan.cloud/ftp/package.json.bak%2500.md"
