@@ -256,15 +256,15 @@ Con este comando le pedís a Nmap que, además de detectar el servicio, use NSE 
 
 ---
 
-## NSE: ejemplo propio para la clase
+## NSE: script propio en Lua
 
-Creamos un script local en Lua para revisar en una sola pasada:
+Un script NSE propio revisa en una sola pasada:
 
 - Cabeceras de seguridad
 - `Server`
 - `X-Powered-By`
 
-Ruta en este repo:
+Está en el material de la clase:
 
 `Modulo-1/lab/nmap/scripts/http-security-headers-simple.nse`
 
@@ -274,7 +274,7 @@ nmap -Pn -p 80,443 \
     <target>
 ```
 
-La idea didáctica es simple: **mostrar cómo extender Nmap con Lua para automatizar una verificación concreta**.
+Se corre igual que cualquier script del core de Nmap: en vez de apuntar a uno de `/usr/share/nmap/scripts/`, apuntás a tu propio `.nse`. Sirve para automatizar cualquier chequeo repetitivo que armes vos mismo.
 
 ---
 
