@@ -430,9 +430,9 @@ Es el mapa del tesoro para un atacante.
 
 ---
 
-## Pausa opcional
+## Pausa — 20 minutos
 
-¿Quieren tomarse 5 minutos?
+Volvemos en 20 minutos.
 
 ---
 
