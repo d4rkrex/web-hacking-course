@@ -521,14 +521,6 @@ A: Después usás Burp para manipular ese punto con precisión.
 
 ---
 
-## Burp Suite: gancho a Módulo 2
-
-Todo lo que armaste hoy con Repeater (interceptar, editar, reenviar) es la base para lo que viene.
-
-En el Módulo 2 vas a usar **Intruder** para automatizar el envío de payloads de SQL Injection sobre el mismo tipo de request que acabás de manipular a mano.
-
----
-
 ## Demo 6: Nikto contra Juice Shop
 
 **Nikto** es un escáner de vulnerabilidades web que busca configuraciones inseguras, archivos peligrosos y versiones conocidas.
