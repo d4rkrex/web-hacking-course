@@ -130,7 +130,7 @@ Hoy nos enfocamos en Gobuster. Las otras las van a encontrar en el campo.
 
 ---
 
-## 🧪 Demo 2: Gobuster contra Juice Shop
+## Demo 2: Gobuster contra Juice Shop
 
 **Target:** `https://juice.labs.manuel-roldan.cloud`
 
@@ -138,7 +138,7 @@ Hoy nos enfocamos en Gobuster. Las otras las van a encontrar en el campo.
 
 ---
 
-## 🧪 Primer intento
+## Primer intento
 
 ```bash
 gobuster dir \
@@ -153,7 +153,7 @@ Todas las rutas devuelven **200 OK** con el mismo HTML del frontend.
 
 ---
 
-## 💡 El truco: --exclude-length
+## El truco: --exclude-length
 
 ```bash
 gobuster dir \
@@ -167,7 +167,7 @@ Excluimos ese tamaño → solo vemos respuestas reales del backend.
 
 ---
 
-## 🧪 Hallazgos
+## Hallazgos
 
 | Path | Status | Análisis |
 |---|---|---|
@@ -178,7 +178,7 @@ Excluimos ese tamaño → solo vemos respuestas reales del backend.
 
 ---
 
-## 🧪 Discusión con la clase
+## Discusión con la clase
 
 ```qa-accordion
 Q: ¿Qué significa un 500 vs un 404?
@@ -310,7 +310,7 @@ Tres señales de alerta:
 
 ---
 
-## 🧪 Demo 3: Nmap + NSE contra Juice Shop
+## Demo 3: Nmap + NSE contra Juice Shop
 
 **Target:** `juice.labs.manuel-roldan.cloud`
 
@@ -318,7 +318,7 @@ Vamos a combinar detección de servicios con scripts NSE para extraer informaci�
 
 ---
 
-## 🧪 Demo 3: Comandos
+## Demo 3: Comandos
 
 ```bash
 # Detección de servicios y versiones
@@ -336,7 +336,7 @@ nmap --script=ssl-cert,ssl-enum-ciphers -p 443 juice.labs.manuel-roldan.cloud
 
 ---
 
-## 🧪 Demo 3: Discusión
+## Demo 3: Discusión
 
 - ¿Qué servicios ven corriendo?
 - ¿Qué versiones reporta?
@@ -430,13 +430,13 @@ Es el mapa del tesoro para un atacante.
 
 ---
 
-## ☕ Pausa opcional
+## Pausa opcional
 
 ¿Quieren tomarse 5 minutos?
 
 ---
 
-## 🔧 Burp Suite: el proxy que faltaba
+## Burp Suite: el proxy que faltaba
 
 `curl` nos sirvió hasta acá, pero tiene techo: no guarda historial, no compara requests, no reenvía con un clic.
 
@@ -446,11 +446,7 @@ Es el mapa del tesoro para un atacante.
 
 ## Burp Suite: cómo se ubica
 
-```
-Browser → [Burp Proxy :8080] → Servidor
-              ↑
-      vos interceptás/modificás acá
-```
+![Burp Suite como proxy intermedio](assets/burp-proxy-posicion.svg)
 
 Todo el tráfico HTTP/HTTPS pasa por el proxy antes de llegar al target. Para HTTPS, el browser tiene que confiar en el certificado CA de Burp.
 
@@ -482,7 +478,7 @@ Sin el certificado importado, HTTPS no funciona con Intercept activo.
 
 ---
 
-## 🧪 Demo 4: Intercept en vivo contra Juice Shop
+## Demo 4: Intercept en vivo contra Juice Shop
 
 **Target:** `https://juice.labs.manuel-roldan.cloud`
 
@@ -495,7 +491,7 @@ Secuencia sugerida en vivo:
 
 ---
 
-## 🧪 Demo 5: de curl a Repeater
+## Demo 5: de curl a Repeater
 
 Clase pasada encontramos con `curl` que `/ftp/package.json.bak` da 403, pero con Null Byte (`%2500.md`) el servidor lo sirve igual (ver `NullByte.md`).
 
@@ -507,7 +503,7 @@ Repetimos el mismo hallazgo con Repeater, sin reescribir el comando cada vez:
 
 ---
 
-## 🧪 Discusión: ¿por qué no solo con curl?
+## Discusión: ¿por qué no solo con curl?
 
 ```qa-accordion
 Q: ¿Qué gana Repeater que curl no te da?
@@ -533,7 +529,7 @@ En el Módulo 2 vas a usar **Intruder** para automatizar el envío de payloads d
 
 ---
 
-## 🧪 Demo 6: Nikto contra Juice Shop
+## Demo 6: Nikto contra Juice Shop
 
 **Nikto** es un escáner de vulnerabilidades web que busca configuraciones inseguras, archivos peligrosos y versiones conocidas.
 
@@ -543,7 +539,7 @@ nikto -h https://juice.labs.manuel-roldan.cloud
 
 ---
 
-## 🧪 Demo 6: ¿Qué detecta Nikto?
+## Demo 6: ¿Qué detecta Nikto?
 
 - Archivos peligrosos expuestos
 - Configuraciones inseguras
@@ -553,7 +549,7 @@ nikto -h https://juice.labs.manuel-roldan.cloud
 
 ---
 
-## 🧪 Demo 6: Interpretando resultados
+## Demo 6: Interpretando resultados
 
 | Hallazgo | Significado |
 |---|---|
@@ -565,7 +561,7 @@ nikto -h https://juice.labs.manuel-roldan.cloud
 
 ---
 
-## 🧪 Demo 6: Discusión
+## Demo 6: Discusión
 
 ¿Cuál es el hallazgo más crítico y por qué?
 
@@ -735,7 +731,7 @@ No importa si "funciona perfecto".
 
 ---
 
-## 📌 Proyecto integrador — Tarea para casa
+## Proyecto integrador — Tarea para casa
 
 **Etapa 1: Análisis Web Corporativo con Scripts NSE**
 
@@ -743,7 +739,7 @@ Target: `juice.labs.manuel-roldan.cloud`
 
 ---
 
-## 📌 Tarea: Comandos a ejecutar
+## Tarea: Comandos a ejecutar
 
 ```bash
 # Headers HTTP
@@ -758,7 +754,7 @@ nmap --script=ssl-cert,ssl-enum-ciphers -p 443 juice.labs.manuel-roldan.cloud
 
 ---
 
-## 📌 Tarea: Entregable
+## Tarea: Entregable
 
 **Reporte ejecutivo** que incluya:
 
