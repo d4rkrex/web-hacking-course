@@ -49,3 +49,6 @@ node_modules/
 # Temporales
 /tmp/
 *.tmp
+
+# Wordlists locales (seclists clonado a mano, no va en el repo)
+/SecLists/
