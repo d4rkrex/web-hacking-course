@@ -1097,20 +1097,23 @@
 - SQLMap automatiza, pero primero hay que entender la falla
 - Contextos de inyección: string vs numérico
 
-> Hoy damos el salto: de curl y navegador a **Burp Suite**, la herramienta estándar de la industria.
+> En Módulo 1 ya usaron **Burp Suite** para interceptar y repetir requests (Proxy + Repeater). Hoy lo llevamos al terreno de la explotación real.
 
 ---
 
-## ¿Por qué los alumnos quieren Burp ahora?
+## De interceptar a explotar
 
-Feedback real de la clase pasada:
-- "¿Cuándo usamos Burp?"
-- "Los pentesters profesionales no usan curl para todo"
-- "Quiero automatizar ataques, no tipear payloads a mano"
+Ya saben:
+- Interceptar un request con **Proxy** y modificarlo antes de que salga
+- Reenviarlo con variaciones usando **Repeater**
+- Por qué Burp te da más control que `curl` para esto
 
-Tenían razón.
+Lo que falta:
+- **Target**: definir el alcance (scope) de un análisis real
+- **Intruder**: automatizar ataques — fuzzing, fuerza bruta — en vez de repetir a mano request por request
+- Usar todo esto junto para explotar **SQLi de punta a punta**
 
-**Burp Suite es la navaja suiza del pentesting web**. Y es momento de aprenderla.
+**Burp Suite sigue siendo la navaja suiza del pentesting web.** Hoy aprendés a usar el resto de la navaja.
 
 ---
 
