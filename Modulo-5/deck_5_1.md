@@ -10,9 +10,11 @@
 > Duración: 1 hora (última hora de la Clase 5)
 > Del ataque a la defensa — los mismos sistemas, otra perspectiva
 
+**Después de la pausa**, cerramos el curso con la última hora: defensa.
+
 ### ¿Ahora que saben atacar, cómo protegerían su propia app?
 
-- Ya vieron cómo se rompe una aplicación real
+- Ya vieron cómo se rompe una aplicación real (M1-M4)
 - Hoy miramos el mismo sistema desde la vereda defensiva
 - La meta no es “poner parches”: es diseñar controles consistentes
 
