@@ -1078,7 +1078,7 @@
 # Deck — Clase 1 · Módulo 3
 
 > Curso de Web Hacking
-> Duración: 2 horas
+> Duración: ~1h40m (primera parte de la Clase 5, antes de la pausa)
 > Formato: teoría + demos guiadas
 
 ---
@@ -1493,6 +1493,16 @@ nuclei -l live.txt -tags xss,sqli -o xss_sqli.txt
 
 **Target:** `dvwa.labs.manuel-roldan.cloud`
 
+**Importante:** DVWA tiene login. Sin sesión autenticada, el crawler solo ve `/login.php` — hay que loguearse primero y pasarle la cookie a `katana` con `-H`:
+
+```bash
+# Login manual en el browser → copiar cookie de sesión → pasarla al pipeline
+katana -u https://dvwa.labs.manuel-roldan.cloud -d 2 \
+  -H "Cookie: security=low; PHPSESSID=<tu_session_id>" -o urls.txt
+```
+
+Con eso ya ves las páginas reales de `/vulnerabilities/*`, no solo el login.
+
 ```bash
 # 1. Crawl del target
 katana -u https://dvwa.labs.manuel-roldan.cloud -d 2 -o urls.txt
@@ -1587,11 +1597,7 @@ Repeater valida **una hipótesis a la vez**. Intruder automatiza eso contra **mu
 
 ## Próxima clase
 
-**Módulo 3 — Clase 2:**
-- Autenticación y sesiones: JWT, OAuth, tokens
-- Session fixation, hijacking y CSRF avanzado
-- Bypass de 2FA y rate limiting
-- Automatización con Python + Burp API
+Después de la pausa, misma clase: **defensa**. Cómo se mitiga cada cosa que acabamos de ver — SSDLC, headers, prepared statements, WAF, JWT seguro, y cierre del curso.
 
 ---
 
@@ -1599,12 +1605,16 @@ Repeater valida **una hipótesis a la vez**. Intruder automatiza eso contra **mu
 
 **¿Preguntas?**
 
-Recuerden: Burp no es un botón mágico.  
+Recuerden: Burp no es un botón mágico.
 Es una herramienta que **amplifica** tu razonamiento.
 
 Practiquen, experimenten, rompan cosas (en labs autorizados 😉)
 
-Nos vemos la próxima clase 🚀
+---
+
+## Pausa — 20 minutos
+
+Volvemos en 20 minutos. Después: defensa y cierre del curso.
 </script>
 
     <script>

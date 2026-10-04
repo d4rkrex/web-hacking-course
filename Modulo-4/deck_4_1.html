@@ -1082,8 +1082,16 @@
 ## Módulo 4 · Clase 1
 
 > Curso de Web Hacking
-> Duración: 2 horas
+> Duración: ~2 horas (segunda parte de Clase 4, después de XSS+BeEF)
 > Target: Juice Shop · DVWA
+
+---
+
+## Después de la pausa
+
+Vienen de ver **XSS + BeEF** (control de navegadores de víctimas). Ahora cambiamos de capa: dejamos el DOM y el navegador, y vamos directo a la **API** que alimenta la aplicación.
+
+> Mismo target (Juice Shop), otra superficie de ataque.
 
 ---
 
@@ -1094,9 +1102,7 @@
 - **JWT attacks** — manipular tokens de autenticación
 - **API5** — operaciones de admin sin ser admin (`PUT /api/Products`)
 - **API6 / Business Logic** — precio negativo, cupones vencidos en el JS
-- **API Discovery** — swagger expuesto y endpoints ocultos
-- **Sensitive Data** — secrets en JS y localStorage
-- **Client-side Validation Bypass** — el frontend miente
+- **API Discovery & Sensitive Data** — swagger expuesto + secrets en JS/localStorage
 - **Password Reset débil** — OSINT + preguntas de seguridad
 - **File Upload → RCE** + **Metasploit** — DVWA
 
@@ -1413,6 +1419,12 @@ Target: https://dvwa.labs.manuel-roldan.cloud
 
 ---
 
+## Pausa — 5-10 min
+
+Estiren las piernas. Al volver: Metasploit, para explotar en automático lo que acabamos de hacer a mano.
+
+---
+
 ## Metasploit para Web
 
 ---
@@ -1546,202 +1558,81 @@ Casos clásicos en Juice Shop:
 
 ---
 
-## Demo — Business Logic en Juice Shop
-
-```http
-# Precio negativo — modificar request en Burp
-PUT /api/BasketItems/7
-{"quantity":-100}
-→ Total del carrito: -$500
-
-# Cambiar BasketId de otro usuario (BOLA)
-GET /rest/basket/1
-Authorization: Bearer <tu-token>
-→ Ver carrito de otro usuario
-```
-
----
-
-## Cupones vencidos — secrets en el JS
+## Demo — Cupones vencidos (Business Logic)
 
 Los cupones de Juice Shop están **hardcodeados en el JavaScript del frontend**.
 
 ```
-1. DevTools → Sources → main.js
-   Buscar: "coupon" o "WMNSDY" o "ORANGE"
-
-   Encontrarás algo como:
-   {code: "WMNSDY2019", discount: 75, validOn: 1551999600000}
-   {code: "ORANGE2024", discount: 10, validOn: ...}
+DevTools → Sources → main.js
+Buscar: "coupon" o "WMNSDY" o "ORANGE"
+  {code: "WMNSDY2019", discount: 75, validOn: 1551999600000}
 ```
 
-El código de validación también está en el JS:
+Validación también vive en el cliente:
 
 ```javascript
-// Validación del cupón — lado cliente
 if (coupon.validOn < Date.now()) {
   // cupón vencido — rechazar
 }
 ```
 
----
-
-## Demo — Aplicar cupón vencido
-
+**Aplicarlo igual:**
 ```
-Opción 1 — Interceptar en Burp y saltear validación de fecha:
-  POST /rest/basket/1/coupon/WMNSDY2019
-  → El backend no re-valida la fecha → aplica el 75% off
-
-Opción 2 — Manipular el JS en DevTools:
-  DevTools → Sources → main.js (pretty print)
-  Buscar la función de validación de fecha
-  Cambiar: if (coupon.validOn < Date.now())
-  Por: if (false)
-  → Todos los cupones vencidos se aceptan en el frontend
-
-Opción 3 — Leer cupones vigentes del JS y aplicarlos directamente
-  Sin pasar por la UI — request directo con Burp
+Opción 1 — Burp: POST /rest/basket/1/coupon/WMNSDY2019 → backend no re-valida fecha → aplica 75% off
+Opción 2 — DevTools: cambiar "if (coupon.validOn < Date.now())" por "if (false)"
+Opción 3 — Leer cupones vigentes del JS y aplicarlos directo, sin pasar por la UI
 ```
 
-**Enseñanza:** la validación de cupones nunca debe ser solo cliente-side.
-El backend debe verificar vigencia independientemente.
+**También es Business Logic:** el mismo patrón sirve para precio negativo en el carrito (`PUT /api/BasketItems/7 {"quantity":-100}` → total negativo) o para cambiar `BasketId` y ver el carrito de otro usuario (BOLA).
+
+**Enseñanza:** la validación de negocio nunca debe vivir solo en el cliente — el backend debe verificar vigencia e integridad de forma independiente.
 
 ---
 
-## API Discovery
+## API Discovery & Sensitive Data
 
----
-
-## API Discovery — la API te lo cuenta todo
-
-Antes de atacar, **mapear** qué endpoints existen.
+Antes de atacar, **mapeá**: Swagger/OpenAPI expuesto + secrets hardcodeados en el JS del bundle.
 
 ```
 En Juice Shop → DevTools → Network
-→ Filtrar por XHR / Fetch
-→ Ver todas las llamadas a /api/* y /rest/*
+→ Filtrar por XHR / Fetch → ver todas las llamadas a /api/* y /rest/*
 
-Endpoints interesantes encontrados:
-  GET  /api/Users/        ← lista todos los usuarios (admin)
-  GET  /api/Products/     ← catálogo completo
-  POST /api/Orders/       ← crear orden
-  GET  /api-docs          ← ¡Swagger/OpenAPI expuesto!
+Endpoints interesantes:
+  GET  /api/Users/   ← lista todos los usuarios (admin)
+  GET  /api-docs     ← ¡Swagger/OpenAPI expuesto!
+
+Dónde buscar secrets:
+  DevTools → Sources → JS bundles: contraseñas, API keys, JWT secrets
+  DevTools → Application → Local Storage: token JWT (XSS lo roba fácil)
 ```
 
 ---
 
-## Demo — Swagger expuesto en Juice Shop
+## Demo — Swagger + Secrets en Juice Shop
 
 ```
-1. Abrir: https://juice.labs.../api-docs
+1. Abrir https://juice.labs.../api-docs
+   → Ver TODOS los endpoints documentados (algunos no enlazados en la UI)
+   → Buscar endpoints "admin only" sin protección: DELETE /api/Users/:id, GET /api/Users/
 
-2. Ver TODOS los endpoints documentados
-   → Algunos no están enlazados en la UI
-   → Incluye parámetros y formatos esperados
+2. DevTools → Sources → main.js (bundle Angular)
+   Ctrl+F: "password" → credenciales hardcodeadas
+   Ctrl+F: "secret"   → JWT secret ("secret")
+   Ctrl+F: "token"    → cómo se guarda el auth
 
-3. Buscar endpoints "admin only" sin protección:
-   DELETE /api/Users/:id
-   GET /api/Users/ (lista completa)
+3. Application → Local Storage → localhost
+   → Token JWT completo → copiar y decodear en jwt.io
 
-4. Intentar directamente desde Swagger UI
-   o copiar el curl → Burp → manipular
-```
-
-> Si hay documentación de API expuesta en producción = regalo para el atacante.
-
----
-
-## Sensitive Data Exposure
-
----
-
-## Sensitive Data — lo que no debería estar ahí
-
-Los atacantes buscan secrets **antes de explotar** cualquier cosa.
-
-```
-Dónde mirar en Juice Shop:
-
-DevTools → Sources → buscar en JS bundles:
-  - Contraseñas hardcodeadas
-  - API keys
-  - JWT secrets
-  - URLs internas
-
-DevTools → Application → Local Storage:
-  - Token JWT guardado en localStorage (XSS lo roba fácil)
-  - Datos de usuario serializados
+4. Network → headers de respuesta:
+   X-Powered-By: Express, Server: nginx/1.14 → stack expuesto, CVE buscable
 ```
 
 ---
 
-## Demo — Secrets en JS de Juice Shop
+## Takeaways — exposición antes del ataque
 
-```
-1. DevTools → Sources → main.js (bundle Angular)
-   Ctrl+F: "password"  → encuentra credenciales hardcodeadas
-   Ctrl+F: "secret"    → encuentra JWT secret ("secret")
-   Ctrl+F: "token"     → encuentra cómo se guarda el auth
-
-2. Application → Local Storage → localhost
-   → Ver token JWT completo
-   → Copiarlo y decodear en jwt.io
-
-3. Network → buscar headers de respuesta:
-   X-Powered-By: Express   ← framework expuesto
-   Server: nginx/1.14      ← versión expuesta (CVE searchable)
-```
-
-**Takeaway:** el frontend Angular compila todo el código cliente. El atacante lo lee.
-
----
-
-## Client-side Validation Bypass
-
----
-
-## Bypass — el frontend miente
-
-Las validaciones del lado del cliente (HTML5, JavaScript) son **solo UX, no seguridad**.
-
-```
-Ejemplo: cantidad mínima de 1 en el carrito
-→ El frontend no deja escribir 0 o negativo
-→ Pero si capturas el request en Burp...
-```
-
-```http
-PUT /api/BasketItems/7
-{"quantity":-100}
-```
-
-El servidor no valida → acepta el cambio.
-
-**Regla de oro:** toda validación del cliente debe replicarse en el servidor.
-
----
-
-## Demo — Client-side Validation en Juice Shop
-
-```
-1. Agregar producto al carrito en la UI
-
-2. Burp → Intercept ON
-
-3. Cambiar cantidad a -100 en el request:
-   {"quantity": -100}
-
-4. Forward → el carrito ahora tiene precio negativo
-
-5. También: cambiar productId por uno inexistente
-   → Ver qué responde el servidor
-```
-
-**También aplica a:**
-- Campos de formulario `maxlength` o `disabled`
-- Filtros de tipo de archivo en inputs
-- Lógica de precios/descuentos calculada solo en el frontend
+- Documentación de API expuesta en producción = regalo para el atacante.
+- El frontend Angular compila todo el código cliente — el atacante lo lee.
 
 ---
 
@@ -1796,9 +1687,7 @@ Respuesta: "Star Wars" (nombre de usuario = Jim → referencia Star Trek)
 - **JWT:** algorithm none, weak secret, modificar payload con secret conocido
 - **API5:** `PUT /api/Products` como usuario normal — cambiar precio a $0
 - **API6 / Business Logic:** precio negativo en carrito, cupones vencidos hardcodeados en JS
-- **API Discovery:** Swagger expuesto = mapa de todos los endpoints
-- **Sensitive Data:** secrets hardcodeados en JS bundle, JWT en localStorage
-- **Validation Bypass:** el frontend bloquea, el servidor no valida
+- **API Discovery & Sensitive Data:** Swagger expuesto + secrets hardcodeados en JS/localStorage
 - **Password Reset:** OSINT + preguntas débiles → cambio de contraseña sin auth
 - **File Upload + Metasploit:** RCE via webshell PHP
 
@@ -1808,8 +1697,9 @@ Respuesta: "Star Wars" (nombre de usuario = Jim → referencia Star Trek)
 
 ## Próxima clase
 
-## Módulo 5 — Defensa & Hardening
+## Clase 5 — Recon avanzado, XSS automatizado & Defensa
 
+- Recon avanzado y XSS automatizado con herramientas (Módulo 3 recortado)
 - HTTP Security Headers (CSP, HSTS, X-Frame-Options)
 - Cookies seguras (HttpOnly, Secure, SameSite)
 - Validación server-side y Prepared Statements
