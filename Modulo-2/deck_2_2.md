@@ -1,7 +1,7 @@
 # Deck — Clase 2 · Módulo 2
 
 > Curso de Web Hacking
-> Duración: 2 horas
+> Duración: ~1h30m (segunda mitad de Clase 3, después de la pausa)
 > Formato: teoría + demos guiadas
 
 ---
@@ -20,7 +20,7 @@
 - SQLMap automatiza, pero primero hay que entender la falla
 - Contextos de inyección: string vs numérico
 
-> En Módulo 1 ya usaron **Burp Suite** para interceptar y repetir requests (Proxy + Repeater). Hoy lo llevamos al terreno de la explotación real.
+> Después de la pausa, seguimos con **Burp Suite** (ya lo usaron en Módulo 1 para interceptar y repetir requests con Proxy + Repeater) y SQLi con herramientas profesionales.
 
 ---
 
@@ -44,97 +44,23 @@ Lo que falta:
 
 | Bloque | Contenido | Tiempo aprox. |
 |---|---|---|
-| **1** | ¿Qué es Burp Suite y por qué lo usamos? | ~10 min |
-| **2** | Setup e interfaz: Proxy, Repeater, Intruder | ~30 min |
+| **1** | Burp Suite: recap + Target (Scope) | ~15 min |
 | 🧪 | Demo 1: Interceptar y modificar requests | ~15 min |
-| **3** | SQLi con Burp en WebGoat | ~35 min |
+| **2** | SQLi con Burp en WebGoat | ~35 min |
 | 🧪 | Demo 2: Blind SQLi con Intruder | ~20 min |
-| **4** | Preview: XSS y próxima clase | ~10 min |
+| **3** | Preview: XSS y próxima clase | ~10 min |
 
 ---
 
-## ¿Qué es Burp Suite?
+## Burp Suite: recap rápido
 
-Burp Suite es una **plataforma de análisis de seguridad** orientada a la explotación manual de aplicaciones web.
+Ya instalaron Burp y configuraron el proxy en Módulo 1 — no lo repetimos.
 
-Su función principal: actuar como **intermediario** entre el navegador y el servidor, permitiendo:
-- Inspeccionar tráfico HTTP/HTTPS
-- Modificar requests antes de enviarlas
-- Repetir y automatizar ataques
-- Analizar respuestas del servidor
+- **Qué es:** plataforma de análisis de seguridad para explotación manual de apps web, actuando como intermediario entre navegador y servidor
+- **Manual vs automático:** no "encuentra vulnerabilidades por sí solo" — facilita el razonamiento del analista. No es un botón mágico
+- **Ya usado en M1:** Proxy (interceptar/modificar tráfico) + Repeater (reenviar con variaciones), con certificado CA instalado
 
-**Se emplea en:**
-- Auditorías de seguridad web
-- Pruebas de penetración manuales
-- Análisis de lógica de aplicaciones
-
----
-
-## Burp Suite: Manual vs Automático
-
-> **Burp Suite no "encuentra vulnerabilidades por sí solo"**
-
-Facilita el **razonamiento del analista**.
-
-Tiene escaneo automático (pasivo y activo), pero su valor real está en:
-- Interceptar y modificar tráfico en tiempo real
-- Repetir requests con variaciones
-- Automatizar ataques que **vos diseñás**
-
-No es un "botón mágico". Es una herramienta para pentesters que **entienden** lo que buscan.
-
----
-
-## Instalación de Burp Suite Community Edition
-
-### Requisitos
-- Sistema operativo Windows, Linux o macOS
-- Java Runtime (si la versión no lo incluye)
-
-### Proceso
-1. Descargar la versión **Community** (gratuita)
-2. Ejecutar el instalador o archivo `.jar`
-3. Iniciar un **proyecto temporal**
-4. Usar la configuración por defecto
-
-**En Kali Linux:** Ya viene preinstalado → menú Applications → Web Application Analysis → Burp Suite
-
----
-
-## Interfaz de Burp Suite
-
-La interfaz se compone de:
-- **Barra de menú** (configuración, scope, extensiones)
-- **Pestañas funcionales** (tabs principales)
-- **Panel de solicitudes y respuestas**
-
-Cada área está diseñada para una fase del análisis.
-
----
-
-## Tabs Principales (las que vamos a usar hoy)
-
-| Tab | Para qué sirve |
-|-----|----------------|
-| **Dashboard** | Centro de control, estado del proyecto |
-| **Proxy** | Interceptar y modificar tráfico HTTP/HTTPS |
-| **Target** | Definir alcance (scope) de la prueba |
-| **Repeater** | Reenviar requests manualmente con modificaciones |
-| **Intruder** | Automatizar ataques controlados (fuzzing, fuerza bruta) |
-
-Las que NO vamos a usar hoy (las veremos en M3):
-- Decoder, Comparer, Extensions
-
----
-
-## Dashboard
-
-- Panel central de control de Burp Suite
-- Muestra el estado del proyecto activo
-- Gestión de extensiones (BApp Store)
-- Vista de tareas en ejecución
-
-**Para hoy:** Solo necesitamos saber que existe. La acción está en los otros tabs.
+Hoy sumamos **Target** e **Intruder** para llevarlo a explotación real.
 
 ---
 
@@ -151,54 +77,17 @@ Las que NO vamos a usar hoy (las veremos en M3):
 
 ---
 
-## Proxy: El corazón de Burp
+## Tabs de Burp: panorama rápido
 
-Permite **interceptar, inspeccionar y modificar** tráfico HTTP y WebSocket.
+| Tab | ¿Ya la vimos? | Para qué sirve |
+|-----|----------------|-----------------|
+| **Dashboard** | — | Estado del proyecto; no hace falta tocarla hoy |
+| **Proxy** | ✅ M1 | Interceptar y modificar tráfico HTTP/HTTPS |
+| **Target** | 🆕 | Definir alcance (scope) de la prueba |
+| **Repeater** | ✅ M1 | Reenviar requests manualmente con modificaciones |
+| **Intruder** | 🆕 | Automatizar ataques controlados (fuzzing, fuerza bruta) |
 
-Funciona como un **Man-in-the-Middle controlado** entre navegador y aplicación.
-
-**Funcionalidades clave:**
-- Intercepción en tiempo real
-- Las peticiones y respuestas pueden analizarse, editarse o descartarse
-- Historial de todo el tráfico interceptado
-- Reglas automáticas (match and replace)
-
----
-
-## Proxy: ¿Cómo funciona?
-
-Flujo de comunicación:
-
-```
-Navegador → Burp Proxy (intercepción) → Servidor
-             ↑
-          Modificación
-```
-
-1. El navegador envía una solicitud
-2. **Burp Suite intercepta** la petición (la detiene temporalmente)
-3. El analista puede **modificarla**
-4. La solicitud es enviada al servidor
-5. La respuesta vuelve a pasar por Burp antes de llegar al navegador
-
-> Este enfoque permite romper la suposición: **"el cliente no alterará los datos enviados"**
-
----
-
-## Proxy: Configuración del Navegador
-
-Para que el navegador envíe tráfico a Burp:
-
-1. **Configurar proxy en el navegador:**
-   - Servidor: `127.0.0.1`
-   - Puerto: `8080` (por defecto)
-
-2. **Instalar certificado CA de Burp:**
-   - Navegar a `http://burp` con el proxy activado
-   - Descargar el certificado CA
-   - Importarlo en el navegador (para inspeccionar HTTPS)
-
-**Tip:** En Firefox, usar FoxyProxy para cambiar entre proxy y navegación normal fácilmente.
+Las que NO vamos a usar hoy (las veremos en M3): Decoder, Comparer, Extensions.
 
 ---
 
@@ -538,8 +427,7 @@ El navegador **ejecuta** el script. El atacante puede robar cookies, sesiones, o
 ## Resumen de lo aprendido
 
 - **Burp Suite** es el proxy interceptor estándar de la industria
-- Configuración: proxy en navegador + certificado CA
-- **Proxy** para interceptar, **Repeater** para iterar, **Intruder** para automatizar
+- **Target** define el scope; **Proxy** y **Repeater** ya los usábamos de M1, **Intruder** automatiza ataques
 - SQLi con Burp: Repeater para payloads manuales, Intruder para blind SQLi
 - Blind SQLi boolean y time-based: extraer datos sin output directo
 - XSS es el siguiente tema (lo profundizamos próxima clase)
@@ -548,12 +436,7 @@ El navegador **ejecuta** el script. El atacante puede robar cookies, sesiones, o
 
 ## Próxima clase
 
-**Módulo 2 — Clase 3:**
-- XSS Reflected, Stored y DOM en profundidad
-- Contextos de ejecución y payloads específicos
-- Bypass de filtros y encoding
-- BeEF: Framework de explotación del navegador
-- Proyecto integrador del Módulo 2
+Próxima clase: XSS a fondo (Reflected/Stored/DOM) + BeEF Framework, y después APIs modernas (BOLA, JWT, Mass Assignment, File Upload, Metasploit).
 
 ---
 
