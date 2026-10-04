@@ -186,7 +186,7 @@ Ahora que sabemos usar Burp, volvamos a SQLi.
 - **Intruder** para blind SQLi (automatizar boolean/time-based)
 - Ver respuestas completas (headers, body, timing)
 
-**Target de hoy:** WebGoat → SQL Injection (Advanced)
+**Target de hoy:** WebGoat → SQL Injection (Intro y Advanced)
 
 ---
 
