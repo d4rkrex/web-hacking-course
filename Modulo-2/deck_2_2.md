@@ -1,7 +1,7 @@
 # Deck — Clase 2 · Módulo 2
 
 > Curso de Web Hacking
-> Duración: ~1h30m (segunda mitad de Clase 3, después de la pausa)
+> Duración: ~1h35m (segunda mitad de Clase 3, después de la pausa)
 > Formato: teoría + demos guiadas
 
 ---
