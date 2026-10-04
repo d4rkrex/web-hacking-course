@@ -133,9 +133,25 @@ Las presentaciones HTML son **standalone** (CSS/JS inline, sin dependencias exte
 
 ## Duración y Formato de Clases
 
-- **Duración**: Cada clase dura **2 horas**
+- **Duración**: el curso tiene **5 clases de 3 horas** (una por módulo). Varios decks individuales siguen fechados como "2 horas" porque son restos de un formato anterior con más clases más cortas — hoy se combinan 2-3 decks por clase con una pausa de 20 min obligatoria entre ellos. Ver "Mapeo real de clases" abajo.
 - **Formato**: Teoría + demos guiadas en vivo
 - **Estructura típica**: 60-70% teoría/demos, 20-30% práctica guiada, 10% cierre
+- **Foco del curso**: ofensivo. La defensa (M5) se comprime a la última hora de la última clase, no se distribuye a lo largo del curso.
+
+### Mapeo real de clases (2026-10-04)
+
+| Clase | Decks | Notas |
+|---|---|---|
+| 1 | M1-Clase1 | ya dictada |
+| 2 | `deck_1_2.html` | Enumeración avanzada (incluye Burp Suite intro) |
+| 3 | `deck_2_1.html` + `deck_2_2.html` | Inyecciones + Burp Suite/SQLi con Burp, pausa 20min en medio |
+| 4 | `deck_2_3.html` + `deck_4_1.html` | XSS+BeEF + APIs/BOLA/JWT/Metasploit, pausa 20min en medio |
+| 5 | `deck_3_1.html` + `deck_5_1.html` | Recon avanzado recortado + Defensa comprimida, pausa 20min en medio |
+
+Cada `deck_N.html` tiene embebido su `.md` byte-idéntico en `<script id="deck-source" type="text/plain">`. Verificar sync con:
+```bash
+diff <(sed -n '/<script id="deck-source"/,/<\/script>/p' deck_N.html | sed '1s/^.*type="text\/plain">//' | sed '$d') deck_N.md
+```
 
 ## Tipos de Archivos
 
@@ -171,16 +187,11 @@ Las presentaciones HTML son **standalone** (CSS/JS inline, sin dependencias exte
 
 ## Notas sobre Burp Suite en el Curso
 
-**Cambio pedagógico importante**: Burp Suite se introduce en **Módulo 2, Clase 2** (adelantado desde M3 por demanda de los alumnos).
+Burp Suite aparece en 3 puntos del curso, cada uno con un nivel distinto — no repetir contenido entre ellos:
+- **Clase 2** (`deck_1_2.html`): intro básica (Proxy/Intercept + Repeater, setup de certificado).
+- **Clase 3** (`deck_2_2.html`): introducción "oficial" a fondo (Proxy, Repeater, Intruder, Target/Scope) + SQLi con Burp en WebGoat + Blind SQLi. Su gancho narrativo asume que los alumnos ya vieron lo básico en Clase 2, no que es la primera vez.
+- **Clase 5** (`deck_3_1.html`): Burp avanzado — IDOR con Repeater, fuzzing masivo con Intruder sobre resultados de un pipeline de recon (subfinder/httpx/gau+katana/jsleak/uro/gf/arjun/ffuf/kxss+bxss/Gxss/dalfox/nuclei).
 
-### Roadmap actualizado:
-- **M2 Clase 1**: Command Injection, File Inclusion, CSRF, SQLi manual con DVWA, SQLMap
-- **M2 Clase 2**: Introducción a Burp Suite (Proxy, Repeater, Intruder) + SQLi con Burp en WebGoat + Blind SQLi + Preview XSS
-- **M2 Clase 3**: XSS profundo (Reflected, Stored, DOM), bypass de filtros, BeEF Framework
-- **M3**: Burp avanzado (técnicas de explotación, extensiones, automatización con Python)
+XSS se enseña a fondo en **Clase 4** (`deck_2_3.html`, "XSS Profundo, Bypass y BeEF"), antes de entrar a APIs modernas (`deck_4_1.html`) en la misma clase.
 
-### Estructura de M2:
-- `deck_2_1.html/.md`: Clase 1 (ya dictada, sin cambios)
-- `deck_2_2.html/.md`: **Reestructurada** - Burp intro + SQLi con Burp
-- `deck_2_3.html/.md`: **Nueva** - XSS profundo (contenido que salió de deck_2_2_old)
-- `deck_2_2_old.html/.md`: Backup del deck original antes de la reestructuración
+`deck_2_2_old.html`/`.md` son backups históricos previos a esta reestructuración — no son parte de la currícula activa.
